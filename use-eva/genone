@@ -1,0 +1,29 @@
+#!/bin/bash
+
+ set -x
+
+ output=1
+
+ caselist=(sfc-letkf_sfc_ps sfc-letkf_sfcship_ps sfc-letkf_sondes_ps sfc_ps sfcship_ps sondes_ps)
+ namelist=(surface_pressure)
+
+#---------------------------------------------------------------------------
+ for i in ${!caselist[@]}
+ do
+   casename=${caselist[$i]}
+   for j in ${!namelist[@]}
+   do
+     varname=${namelist[$j]}
+     if [ -d ${casename}/${varname} ]
+     then
+       if [ ! -f panel-${casename}-${varname} ]
+       then
+         python make-panel.py --debug=1 \
+           --output=${output} \
+           --casename=${casename} \
+           --varname=${varname} 
+       fi
+     fi
+   done
+ done
+

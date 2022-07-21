@@ -1,0 +1,10 @@
+aircraft/
+observation_scatter_plots/
+satwind/
+scatwind/
+sfcship/
+sondes/
+vadwind/
+windprof/
+*.yaml
+*.png

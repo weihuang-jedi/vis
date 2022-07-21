@@ -1,0 +1,71 @@
+#!/bin/bash
+
+ set -x
+
+ casedir=/work2/noaa/gsienkf/weihuang/jedi/case_study
+ run_dir=run_80.40t1n_36p
+
+#caselist=(aircraft amsua iasi satwind scatwind sondes sfcship vadwind windprof)
+ caselist=(aircraft sondes sfcship)
+ var_list=(tsen   tv     uv     q     )
+ namelist=(air_temperature virtual_temperature eastward_wind,northward_wind specific_humidity)
+
+#---------------------------------------------------------------------------
+ for i in ${!var_list[@]}
+ do
+   echo "element $i is ${var_list[$i]}"
+   varname=${namelist[$i]}
+   for j in ${!caselist[@]}
+   do
+     plotdir=${caselist[$j]}
+     if [ "${plotdir}" == "vadwind" ]
+     then
+       obsfile=${casedir}/${caselist[$j]}/${run_dir}/obsout/${caselist[$j]}_obs_2020011006_0000.nc4
+     else
+       obsfile=${casedir}/${caselist[$j]}/${run_dir}/obsout/${caselist[$j]}_${var_list[$i]}_obs_2020011006_0000.nc4
+     fi
+
+     if [ -f ${obsfile} ]
+     then
+      #if [ ! -d ${casename}/${varname} ]
+      #then
+         sed -e "s?OBSFILE?${obsfile}?g" \
+             -e "s?VARNAME?${varname}?g" \
+             -e "s?PLOTDIR?${plotdir}?g" \
+             obscoef.yaml.template > obscoef.yaml
+
+         eva obscoef.yaml
+      #fi
+     fi
+   done
+ done
+
+ caselist=(satwind scatwind vadwind windprof)
+ var_list=(uv)
+ namelist=(eastward_wind,northward_wind)
+
+#---------------------------------------------------------------------------
+ for i in ${!var_list[@]}
+ do
+   echo "element $i is ${var_list[$i]}"
+   varname=${namelist[$i]}
+   for j in ${!caselist[@]}
+   do
+     plotdir=${caselist[$j]}
+     obsfile=${casedir}/${caselist[$j]}/${run_dir}/obsout/${caselist[$j]}_obs_2020011006_0000.nc4
+
+     if [ -f ${obsfile} ]
+     then
+       if [ ! -d ${casename}/eastward_wind ]
+       then
+         sed -e "s?OBSFILE?${obsfile}?g" \
+             -e "s?VARNAME?${varname}?g" \
+             -e "s?PLOTDIR?${plotdir}?g" \
+             obscoef.yaml.template > obscoef.yaml
+
+         eva obscoef.yaml
+       fi
+     fi
+   done
+ done
+
