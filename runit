@@ -1,0 +1,52 @@
+#!/bin/bash
+
+ set -x
+
+ case_dir=/work2/noaa/gsienkf/weihuang/jedi/case_study
+
+ output=1
+
+ caselist=(surf)
+ var_list=(sfc_ps sfcship_ps sondes_ps)
+
+ for i in ${!caselist[@]}
+ do
+   gridfile=regrid/${caselist[$i]}_latlon.nc
+   if [ ! -f ${gridfile} ]
+   then
+     cd regrid
+     rm -f fv3latlon.nc
+     interp.sh ${case_dir}/${caselist[$i]}/${run_dir}/analysis/increment/
+     cd ..
+     mv regrid/fv3latlon.nc ${gridfile}
+   fi
+
+   for j in ${!var_list[@]}
+   do
+     echo "i = $i, j = $j"
+    #obsfile=${case_dir}/${caselist[$i]}/gsiobs/${var_list[$j]}_obs_2020011006_0000.nc4
+     obsfile=${case_dir}/${caselist[$i]}/ioda_v2_data/${var_list[$j]}_obs_2020011006.nc4
+     if [ -f ${obsfile} ]
+     then
+       python new-obs-jedi.py \
+         --output=${output} \
+         --casename=${caselist[$i]}_${var_list[$j]} \
+         --varname=T \
+         --gridfile=${gridfile} \
+         --obsfile=${obsfile}
+     fi
+   done
+ done
+
+ caselist=(surf_sfc_ps surf_sfcship_ps surf_sondes_ps)
+
+ for i in ${!caselist[@]}
+ do
+   python make-panel.py \
+     --output=${output} \
+     --casename=${caselist[$i]} \
+     --varname=T
+ done
+
+ tar cvf ~/surf.tar *.png
+

@@ -1,0 +1,47 @@
+#!/bin/bash
+
+ output=1
+
+ caselist=(amsua iasi)
+
+ for i in ${!caselist[@]}
+ do
+   python make-panel.py \
+     --output=${output} \
+     --casename=${caselist[$i]} \
+     --varname=T
+ done
+
+ exit 0
+
+ caselist=(aircraft sfcship sondes)
+#var_list=(tsen   tv     uv     q)
+ var_list=(tsen)
+
+ for i in ${!caselist[@]}
+ do
+   for j in ${!var_list[@]}
+   do
+     echo "i = $i, j = $j"
+     python make-panel.py \
+       --output=${output} \
+       --casename=${caselist[$i]}_${var_list[$j]} \
+       --varname=T
+   done
+ done
+
+ caselist=(satwind scatwind vadwind windprof)
+ var_list=(uv)
+
+ for i in ${!caselist[@]}
+ do
+   for j in ${!var_list[@]}
+   do
+     echo "i = $i, j = $j"
+     python make-panel.py \
+       --output=${output} \
+       --casename=${caselist[$i]}_${var_list[$j]} \
+       --varname=T
+   done
+ done
+

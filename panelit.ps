@@ -1,0 +1,15 @@
+#!/bin/bash
+
+ output=1
+
+#caselist=(sfc-letkf_sfc_ps sfc-letkf_sfcship_ps sfc-letkf_sondes_ps)
+ caselist=(sfc-letkf_sfc_ps sfc-letkf_sfcship_ps sfc-letkf_sondes_ps)
+
+ for i in ${!caselist[@]}
+ do
+   python make-panel.py \
+     --output=${output} \
+     --casename=${caselist[$i]} \
+     --varname=T
+ done
+
