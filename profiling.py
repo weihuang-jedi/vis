@@ -53,18 +53,28 @@ class Profiler:
                           'GETKF_computeHofX',
                           'changeVar',
                           'computeWeights',
-                          'State',
-                          'Local_computeHofX']
+                          'measurementUpdate',
+                          'State']
+#                         'Local_computeHofX']
     self.fullfunction_list = ['util::Timers::Total',
                               'oops::GETKFSolver::computeHofX',
                               'oops::VariableChange::changeVar',
                               'oops::GETKFSolver::computeWeights',
-                              'oops::State::State',
-                              'oops::LocalEnsembleSolver::computeHofX']
-    self.pmin = 999999999999.0
-    self.gmin = 999999999999.0
+                              'oops::GETKFSolver::measurementUpdate',
+                              'oops::State::State']
+#                             'oops::LocalEnsembleSolver::computeHofX']
+    self.pmin = 1.0e10
+    self.gmin = 1.0e10
     self.pmax = 0.0
     self.gmax = 0.0
+
+    self.max_selected_functions = 6
+    self.num_selected_functions = 0
+    self.selected_functions_time = []
+    self.selected_functions_name = []
+
+    self.get_top_functions()
+   #self.generate_top_function_list()
 
   def set_linear(self, linear=1):
     self.linear = linear
@@ -72,8 +82,68 @@ class Profiler:
   def set_output(self, output=1):
     self.output = output
 
+  def add2selected_functions(self, name, avgt):
+    n = self.num_selected_functions - 1
+    if(self.num_selected_functions < self.max_selected_functions):
+      self.selected_functions_time.append(avgt)
+      self.selected_functions_name.append(name)
+      self.num_selected_functions += 1
+    else:
+      if(avgt < self.selected_functions_time[n]):
+        return
+      self.selected_functions_time[n] = avgt
+      self.selected_functions_name[n] = name
+
+    while(n > 0):
+      if(self.selected_functions_time[n] > self.selected_functions_time[n-1]):
+        otime = self.selected_functions_time[n-1]
+        oname = self.selected_functions_name[n-1]
+        self.selected_functions_time[n-1] = self.selected_functions_time[n]
+        self.selected_functions_name[n-1] = self.selected_functions_name[n]
+        self.selected_functions_time[n] = otime
+        self.selected_functions_name[n] = oname
+      n -= 1
+
+  def get_top_functions(self):
+    self.selected_function_list = []
+   #par_stats = self.parstatslist[0]
+
+    rundir = '%s/%s/run_80.40t%dn_%dp' %(self.workdir, self.casename,
+              self.nodelist[0], self.corelist[0])
+    flnm = '%s/stdoutNerr/stdout.00000000' %(rundir)
+
+    if(os.path.exists(flnm)):
+      if(self.debug):
+        print('Processing file: %s' %(flnm))
+     #pstats, gstats = self.stats(flnm)
+      ptime, par_stats = self.stats(flnm)
+    else:
+      print('file: ' + flnm + ' does not exist.')
+      sys.exit(-1)
+
+    nf = len(par_stats)
+    for n in range(nf):
+      name = par_stats[n]['name']
+      avgt = par_stats[n]['avg']
+      self.add2selected_functions(name, avgt)
+
+    for n in range(self.num_selected_functions):
+      pinfo = 'No. %3.3d name: %40s' %(n, self.selected_functions_name[n])
+      pinfo = '%s, time: %8.2f' %(pinfo, self.selected_functions_time[n])
+      print(pinfo)
+
+  def generate_top_function_list(self):
+    self.function_list = []
+    self.fullfunction_list = []
+
+    for n in range(self.num_selected_functions):
+      self.fullfunction_list.append(self.selected_functions_name[n])
+      item = self.selected_functions_name[n].split('::')
+      self.function_list.append(item[-1])
+
   def process(self):
-    self.pstatslist = []
+    self.parstatslist = []
+    self.paravgtimelist = []
     self.gstatslist = []
 
     self.filelist = []
@@ -88,9 +158,10 @@ class Profiler:
         if(self.debug):
           print('Processing node: %d, as file: %s' %(self.nodelist[n], flnm))
        #pstats, gstats = self.stats(flnm)
-        ptime = self.stats(flnm)
+        ptime, par_stats = self.stats(flnm)
         self.filelist.append(flnm)
-        self.pstatslist.append(ptime)
+        self.paravgtimelist.append(ptime)
+        self.parstatslist.append(par_stats)
        #self.gstatslist.append(glist)
       else:
         print('Filename ' + flnm + ' does not exit. Stop')
@@ -103,8 +174,7 @@ class Profiler:
       print('Filename ' + flnm + ' does not exit. Stop')
       sys.exit(-1)
 
-    prof = {}
-
+    par_stats = {}
     with open(flnm) as fp:
       lines = fp.readlines()
      #line = fp.readline()
@@ -138,7 +208,7 @@ class Profiler:
 
       avgtime.append(avgt)
 
-    return avgtime
+    return avgtime, par_stats
 
   def get_index(self, stats, varname):
     idx = -1
@@ -271,21 +341,29 @@ class Profiler:
     pmin = 1.0e20
     pmax = 0.0
 
+    txtname = 'timing_%s.csv' %(self.casename)
+    OPF = open(txtname, 'w')
+    header = '%40s, %12s\n' %('Function Name', 'Avg Time (seconds)')
+    OPF.write(header)
+
     for i in range(len(self.fullfunction_list)):
       for k in range(nl):
-        y[k] = 0.001*self.pstatslist[k][i]
+        y[k] = 0.001*self.paravgtimelist[k][i]
         if(pmin > y[k]):
           pmin = y[k]
         if(pmax < y[k]):
           pmax = y[k]
      #print('y = ', y)
       ax.plot(x, y, color=self.colorlist[i], linewidth=2, alpha=0.9)
+      txtinfo = '%40s, %12.2f\n' %(self.fullfunction_list[i], y[0])
+      OPF.write(txtinfo)
+    OPF.close()
 
     if(self.linear == 0):
       for i in range(len(self.fullfunction_list)):
         for k in range(nl):
           fact = 1.0/np.log2(2*self.nodelist[k])
-          z[k] = 0.001*self.pstatslist[0][i]*fact
+          z[k] = 0.001*self.paravgtimelist[0][i]*fact
        #https://matplotlib.org/stable/gallery/lines_bars_and_markers/linestyles.html
         ax.plot(x, z, color='black', linewidth=1, alpha=0.5, linestyle='dotted')
 
@@ -297,7 +375,7 @@ class Profiler:
     plt.ylim(pmin, pmax)
  
    #general title
-    title = '%s Timing (in seconds), min: %f8.2, max: %f8.2' %(self.casename, pmin, pmax)
+    title = '%s Timing (in seconds), min: %8.2f, max: %8.2f' %(self.casename, pmin, pmax)
    #plt.suptitle(title, fontsize=13, fontweight=0, color='black', style='italic', y=1.02)
     plt.suptitle(title, fontsize=16, fontweight=1, color='black')
 
@@ -339,6 +417,7 @@ if __name__== '__main__':
   casename = 'sondes'
   workdir = '/work2/noaa/gsienkf/weihuang/jedi/case_study'
   corelist = [36, 78, 156, 312]
+ #corelist = [36, 72, 144, 288]
   nodelist = [1, 2, 4, 8]
   output = 0
   linear = 1
@@ -369,7 +448,8 @@ if __name__== '__main__':
   pr.process()
   for linear in [0, 1]:
     pr.set_linear(linear=linear)
-    for output in [0, 1]:
+   #for output in [0, 1]:
+    for output in [1]:
       pr.set_output(output=output)
       pr.plot()
 

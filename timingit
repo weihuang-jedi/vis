@@ -1,0 +1,11 @@
+#!/bin/bash
+
+ set -x
+
+ caselist=(amsua iasi aircraft sfcship sondes surf satwind scatwind vadwind windprof)
+
+ for i in ${!caselist[@]}
+ do
+   python profiling.py --casename=${caselist[$i]}
+ done
+

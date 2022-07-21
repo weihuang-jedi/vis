@@ -6,5 +6,8 @@ sfcship/
 sondes/
 vadwind/
 windprof/
+sfc_ps/
+sfcship_ps/
+sondes_ps/
 *.yaml
 *.png

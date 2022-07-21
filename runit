@@ -3,6 +3,7 @@
  set -x
 
  case_dir=/work2/noaa/gsienkf/weihuang/jedi/case_study
+ run_dir=run_80.40t1n_36p
 
  output=1
 
