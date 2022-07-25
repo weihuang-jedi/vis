@@ -202,16 +202,16 @@ class GeneratePlot():
 #------------------------------------------------------------------
 if __name__== '__main__':
   debug = 1
-  output = 0
+  output = 1
   gridf = 'regrid/grids/ocn_2014_01.nc'
- #file1 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.20t4n_80p/ocn.LETKF.an.2015-12-01T12:00:00Z.nc'
+  file1 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.20t4n_80p/ocn.LETKF.an.2015-12-01T12:00:00Z.nc'
  #file1 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.24t2n_48p/ocn.LETKF.an.2015-12-01T12:00:00Z.nc'
  #file1 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.20t2n_40p/new-run-output/ocn.LETKF.an.2015-12-01T12:00:00Z.nc'
- #file2 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.20t2n_40p/ocn.LETKF.an.2015-12-01T12:00:00Z.nc'
+  file2 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.20t2n_40p/ocn.LETKF.an.2015-12-01T12:00:00Z.nc'
  #file2 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.40t6n_240p/ocn.LETKF.an.2015-12-01T12:00:00Z.nc'
 
-  file1 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.20t2n_40p/new-run-output/ocn.LETKF.fc.2015-12-01T12:00:00Z.PT0S.nc'
-  file2 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.20t2n_40p/ocn.LETKF.fc.2015-12-01T12:00:00Z.PT0S.nc'
+ #file1 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.20t2n_40p/new-run-output/ocn.LETKF.fc.2015-12-01T12:00:00Z.PT0S.nc'
+ #file2 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.20t2n_40p/ocn.LETKF.fc.2015-12-01T12:00:00Z.PT0S.nc'
 
   ncg = netCDF4.Dataset(gridf, 'r')
   lon = ncg.variables['geolon'][:,:]
@@ -232,6 +232,7 @@ if __name__== '__main__':
 
   lat1d = lat.flatten()
   lon1d = lon.flatten()
+  lon1d = np.where(lon1d > 0, lon1d, lon1d+360.0)
   gp.set_grid(lat1d, lon1d)
 
   nlay, nlat, nlon = temp1.shape

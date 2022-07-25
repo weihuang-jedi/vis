@@ -139,9 +139,6 @@ class GeneratePlot():
     print('self.y.shape = ', self.y.shape)
     print('v1d.shape = ', v1d.shape)
 
-   #contfill = self.basemap.contourf(self.x, self.y, v1d, tri=True,
-   #                                 levels=self.clevs, extend=self.extend,
-   #                                 alpha=self.alpha, cmap=self.cmapname)
     contfill = self.plt.tricontourf(self.x, self.y, v1d,
                                     alpha=self.alpha, cmap=self.cmapname)
 
@@ -290,12 +287,16 @@ class TimingTile:
 
       nl = 0
       while(nl < num_lines):
-        if(lines[nl].find('Longitude:') > 0):
+        if(lines[nl].find('Longitude:') >= 0):
+         #print('line[%d]: %s' %(nl, lines[nl]))
           item = lines[nl].split(':')
           lonitem = item[1].split(',')
           lonval = float(lonitem[0].strip())
           latval = float(item[2].strip())
+         #print('item: ', item)
          #print('lon: %f, lat: %f' %(lonval, latval))
+          if(lonval < 0.0):
+            lonval += 360.0
           lon.append(lonval)
           lat.append(latval)
        #if(lines[nl].find('Longitude:') > 0):

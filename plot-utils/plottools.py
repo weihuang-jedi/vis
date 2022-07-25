@@ -238,7 +238,7 @@ class PlotTools():
     self.fig = self.plt.figure()
     self.ax = self.plt.subplot()
 
-    msg = ('plot variable min: %s, max: %s' % (pvar.min(), pvar.max()))
+    msg = ('plot variable min: %s, max: %s' % (np.min(pvar), np.max(pvar)))
     print(msg)
 
     (self.x, self.y) = self.basemap(self.lon1d, self.lat1d)

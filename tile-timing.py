@@ -296,6 +296,8 @@ class TimingTile:
           lonval = float(lonitem[0].strip())
           latval = float(item[2].strip())
          #print('lon: %f, lat: %f' %(lonval, latval))
+          if(lonval < 0.0):
+            lonval += 360.0
           lon.append(lonval)
           lat.append(latval)
        #if(lines[nl].find('Longitude:') > 0):
@@ -383,8 +385,7 @@ if __name__== '__main__':
   output = 0
  #workdir = '/work2/noaa/gsienkf/weihuang/jedi/case_study/sondes/run_80.40t1n_36p/stdoutNerr'
  #workdir = '/work2/noaa/gsienkf/weihuang/jedi/case_study/sondes/run_80.40t8n_312p/stdoutNerr'
- #workdir = '/work2/noaa/gsienkf/weihuang/jedi/case_study/sondes/run_80.40t2n_78p/stdoutNerr'
-  workdir = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.20t2n_40p/stdoutNerr'
+  workdir = '/work2/noaa/gsienkf/weihuang/jedi/case_study/sondes/run_80.40t2n_78p/stdoutNerr'
 
   opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'output=', 'workdir='])
 
