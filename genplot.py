@@ -166,10 +166,12 @@ class GeneratePlot():
 
     msg = ('plot variable min: %s, max: %s' % (np.min(pvar), np.max(pvar)))
     print(msg)
+    print('pvar.shape = ', pvar.shape)
+    print('pvar.size = ', pvar.size)
 
     (self.x, self.y) = self.basemap(self.lon1d, self.lat1d)
    #(self.x, self.y) = np.meshgrid(lon1d, lat1d)
-    v1d = np.reshape(pvar, (len(pvar), ))
+    v1d = np.reshape(pvar, (pvar.size, ))
 
     contfill = self.basemap.contourf(self.x, self.y, v1d, tri=True,
                                      levels=self.clevs, extend=self.extend,
