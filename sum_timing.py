@@ -61,16 +61,16 @@ class Profiler:
                           'sum(oops::ObsVector)',
                           'sum(oops::ObsOperator)',
                           'sum(oops::VariableChange)']
-    self.fullfunction_list = ['oops::GetValues',
-                              'oops::ObsError',
-                              'oops::ObsFilter',
-                              'oops::ObsSpace',
-                              'oops::ObsVector',
-                              'oops::ObsOperator',
-                              'oops::VariableChange']
+    self.sumfunction_list = ['oops::GetValues',
+                             'oops::ObsError',
+                             'oops::ObsFilter',
+                             'oops::ObsSpace',
+                             'oops::ObsVector',
+                             'oops::ObsOperator',
+                             'oops::VariableChange']
 
     self.statstime = []
-    for i in range(len(self.fullfunction_list)):
+    for i in range(len(self.sumfunction_list)):
       tmax = {}
       for n in range(len(self.nodelist)):
         tmax[n] = 0.0
@@ -138,8 +138,8 @@ class Profiler:
       self.updatestats(n, name, tmax)
 
   def updatestats(self, n, name, tmax):
-    for i in range(len(self.fullfunction_list)):
-      if(name.find(self.fullfunction_list[i]) >= 0):
+    for i in range(len(self.sumfunction_list)):
+      if(name.find(self.sumfunction_list[i]) >= 0):
         self.statstime[i][n] += tmax
         return
 
@@ -224,7 +224,7 @@ class Profiler:
     OPF.close()
 
     if(self.linear == 0):
-      for i in range(len(self.fullfunction_list)):
+      for i in range(len(self.sumfunction_list)):
         npnts = 0
         for k in range(nl):
           fact = 1.0/np.log2(2*self.nodelist[k])
@@ -331,8 +331,7 @@ if __name__== '__main__':
   pr = Profiler(debug=debug, corelist=corelist, nodelist=nodelist, output=output,
                 workdir=workdir, casename=casename, linear=linear)
   pr.process()
- #for linear in [1, 0]:
-  for linear in [0]:
+  for linear in [1, 0]:
     pr.set_linear(linear=linear)
     for output in [0, 1]:
    #for output in [1]:
