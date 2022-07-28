@@ -150,7 +150,7 @@ if __name__ == '__main__':
   debug = 1
   output = 0
 
-  addobs = 1
+  addobs = 0
   uselogp = 1
 
   opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'output=',
@@ -172,7 +172,11 @@ if __name__ == '__main__':
   print('output = ', output)
   print('addobs = ', addobs)
 
-  datadir = '/work2/noaa/gsienkf/weihuang/C96_psonly_delp/2020011006'
+ #datadir = '/work2/noaa/gsienkf/weihuang/C96_psonly_delp/2020011006'
+ #bkg = '%s/sfg_2020011006_fhr06_ensmean' %(datadir)
+ #anl = '%s/sanl_2020011006_fhr06_ensmean' %(datadir)
+
+  datadir = '/scratch2/BMC/gsienkf/Jeffrey.S.Whitaker/C96_psonly_delp/2020011006'
   bkg = '%s/sfg_2020011006_fhr06_ensmean' %(datadir)
   anl = '%s/sanl_2020011006_fhr06_ensmean' %(datadir)
 
@@ -204,14 +208,19 @@ if __name__ == '__main__':
 #------------------------------------------------------------------------------
   gp.set_label('Temperature (K)')
 
-  imageprefix = 'PSonly_gsi_sondes'
-  titleprefix = 'PS only GSI Sondes Temperature at'
+ #imageprefix = 'PSonly_gsi_sondes'
+ #titleprefix = 'PS only GSI Sondes Temperature at'
+
+  imageprefix = 'PSonly_GSI_LETKF'
+  titleprefix = 'PS only GSI LETKF Temperature at'
 
 #------------------------------------------------------------------------------
  #clevs = np.arange(-0.5, 0.51, 0.01)
  #cblevs = np.arange(-0.5, 0.6, 0.1)
-  clevs = np.arange(-0.2, 0.21, 0.01)
-  cblevs = np.arange(-0.2, 0.3, 0.1)
+ #clevs = np.arange(-0.2, 0.21, 0.01)
+ #cblevs = np.arange(-0.2, 0.3, 0.1)
+  clevs = np.arange(-2.0, 2.1, 0.1)
+  cblevs = np.arange(-2.0, 3.0, 1.0)
   gp.set_clevs(clevs=clevs)
   gp.set_cblevs(cblevs=cblevs)
 
@@ -248,8 +257,8 @@ if __name__ == '__main__':
 
   for lat in lats:
     pvar = var[:,90+lat,:]
-    gp.set_title(title)
     title = '%s latitude %d' %(titleprefix, lat)
+    gp.set_title(title)
 
     imgname = '%s_lat_%d_logp.png' %(imageprefix, lat)
     gp.set_imagename(imgname)
