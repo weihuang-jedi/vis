@@ -396,7 +396,7 @@ class Profiler:
     legneds = names
     i = 0
     for key in legneds:
-      txtinfo = '%40s' %(obsname)
+      txtinfo = '%40s' %(key)
       npnts = 0
       for k in range(nl):
         y[k] = 0.001*stats[key][k]/60.0
