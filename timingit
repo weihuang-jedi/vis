@@ -7,7 +7,8 @@
 
  for i in ${!caselist[@]}
  do
-  #python main_timing.py --casename=${caselist[$i]}
-   python obs_timing.py --casename=${caselist[$i]}
+   python main_timing.py --casename=${caselist[$i]}
+  #python obs_timing.py --casename=${caselist[$i]}
+   python sum_timing.py --casename=${caselist[$i]}
  done
 

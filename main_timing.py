@@ -38,6 +38,12 @@ class Profiler:
 
     self.shortest_time = 0.1
 
+    if(not os.path.exists(casename)):
+     #mode
+     #mode = 0o722
+     #os.makedirs(casename, mode)
+      os.makedirs(casename)
+
     if(workdir is None):
       print('workdir not defined. Exit.')
       sys.exit(-1)
@@ -193,7 +199,7 @@ class Profiler:
     pmin = 1.0e20
     pmax = 0.0
 
-    txtname = 'main_timing_%s.csv' %(self.casename)
+    txtname = '%s/timing_main.csv' %(self.casename)
     OPF = open(txtname, 'w')
     header = '%40s' %('Function Name')
     for k in range(nl):
@@ -254,7 +260,7 @@ class Profiler:
  
    #general title
    #title = '%s Timing (in minutes), min: %8.2f, max: %8.2f' %(self.casename, pmin, pmax)
-    title = '%s Timing (in minutes)' %(self.casename)
+    title = 'main Timing of %s (in minutes)' %(self.casename)
    #plt.suptitle(title, fontsize=13, fontweight=0, color='black', style='italic', y=1.02)
     plt.suptitle(title, fontsize=16, fontweight=1, color='black')
 
@@ -287,9 +293,9 @@ class Profiler:
    #(smaller value results in more space being made for the legend)
 
     if(self.linear):
-      imgname = 'lin_%s_main_timing.png' %(self.casename)
+      imgname = '%s/lin_timing_main.png' %(self.casename)
     else:
-      imgname = 'log_%s_main_timing.png' %(self.casename)
+      imgname = '%s/log_timing_main.png' %(self.casename)
 
     if(self.output):
       plt.savefig(imgname)
@@ -334,8 +340,8 @@ if __name__== '__main__':
   pr.process()
   for linear in [1, 0]:
     pr.set_linear(linear=linear)
-    for output in [0, 1]:
-   #for output in [1]:
+   #for output in [0, 1]:
+    for output in [1]:
       pr.set_output(output=output)
       pr.plot()
 
