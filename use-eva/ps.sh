@@ -4,8 +4,8 @@
 
  casedir=/work2/noaa/gsienkf/weihuang/jedi/case_study
 
-#caselist=(sfc-letkf sfc-letkf sfc-letkf)
- caselist=(surf surf surf surf)
+ caselist=(sfc-letkf sfc-letkf sfc-letkf)
+#caselist=(surf surf surf surf)
  var_list=(sfc_ps   sfcship_ps sondes_ps)
  namelist=(surface_pressure surface_pressure surface_pressure)
 
@@ -14,6 +14,7 @@
  do
    echo "element $i is ${var_list[$i]}"
    obsfile=${casedir}/${caselist[$i]}/obsout/${var_list[$i]}_obs_2020011006_0000.nc4
+  #obsfile=${casedir}/${caselist[$i]}/obsout.2/${var_list[$i]}_obs_2020011006_0000.nc4
    varname=${namelist[$i]}
    plotdir=${caselist[$i]}_${var_list[$i]}
 

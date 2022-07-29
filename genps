@@ -1,0 +1,36 @@
+#!/bin/bash
+
+ set -x
+
+ case_dir=/work2/noaa/gsienkf/weihuang/jedi/case_study
+
+ output=1
+
+ var_list=(sfc_ps sfcship_ps sondes_ps)
+
+#gridfile=regrid/lonlat_sfc-letkf-nbc.nc
+ gridfile=regrid/lonlat_sfc-letkf.nc
+ if [ ! -f ${gridfile} ]
+ then
+   cd regrid
+   rm -f fv3latlon.nc
+  #interp.sh ${case_dir}/sfc-letkf/analysis.2/increment/
+   interp.sh ${case_dir}/sfc-letkf/analysis/increment/
+   cd ..
+   mv regrid/fv3latlon.nc ${gridfile}
+ fi
+
+ for j in ${!var_list[@]}
+ do
+   obsfile=${case_dir}/sfc-letkf/gsiobs/${var_list[$j]}_obs_2020011006_0000.nc4
+   if [ -f ${obsfile} ]
+   then
+     python new-obs-jedi.py \
+       --output=${output} \
+       --casename=sfc-letkf_${var_list[$j]} \
+       --varname=T \
+       --gridfile=${gridfile} \
+       --obsfile=${obsfile}
+   fi
+ done
+
