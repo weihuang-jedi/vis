@@ -38,6 +38,12 @@ class Profiler:
 
     self.shortest_time = 0.1
 
+    if(not os.path.exists(casename)):
+     #mode
+     #mode = 0o722
+     #os.makedirs(casename, mode)
+      os.makedirs(casename)
+
     if(workdir is None):
       print('workdir not defined. Exit.')
       sys.exit(-1)
@@ -68,13 +74,23 @@ class Profiler:
                              'oops::ObsVector',
                              'oops::ObsOperator',
                              'oops::VariableChange']
+   #self.sumnamelist = []
+   #for i in range(len(self.sumfunction_list)):
+   #  item = self.sumfunction_list[i].split('::')
+   #  self.sumnamelist.append(item[1])
 
+    self.sumstats = {}
+    self.sumnames = {}
     self.statstime = []
     for i in range(len(self.sumfunction_list)):
-      tmax = {}
+      tmax = np.zeros((len(self.nodelist)), dtype=float)
       for n in range(len(self.nodelist)):
         tmax[n] = 0.0
       self.statstime.append(tmax)
+      stats = {}
+      stats['sum'] = tmax
+      self.sumstats[self.sumfunction_list[i]] = stats
+      self.sumnames[self.sumfunction_list[i]] = ['sum']
       
   def set_linear(self, linear=1):
     self.linear = linear
@@ -141,6 +157,17 @@ class Profiler:
     for i in range(len(self.sumfunction_list)):
       if(name.find(self.sumfunction_list[i]) >= 0):
         self.statstime[i][n] += tmax
+        self.sumstats[self.sumfunction_list[i]]['sum'][n] += tmax
+
+        item = name.split('::')
+        pname = item[-1]
+        if(pname in self.sumstats[self.sumfunction_list[i]].keys()):
+          self.sumstats[self.sumfunction_list[i]][pname][n] += tmax
+        else:
+          tzero = np.zeros((len(self.nodelist)), dtype=float)
+          self.sumstats[self.sumfunction_list[i]][pname] = tzero
+          self.sumstats[self.sumfunction_list[i]][pname][n] += tmax
+          self.sumnames[self.sumfunction_list[i]].append(pname)
         return
 
   def plot(self):
@@ -173,7 +200,7 @@ class Profiler:
       lbl = '%6.2f' %(pcur)
       ylabels.append(lbl)
       yp.append(pcur)
-      print('yp = ', yp)
+     #print('yp = ', yp)
 
     fig = plt.figure()
     ax = plt.subplot()
@@ -192,7 +219,7 @@ class Profiler:
     pmin = 1.0e20
     pmax = 0.0
 
-    txtname = 'obs_timing_%s.csv' %(self.casename)
+    txtname = '%s/timing_sum.csv' %(self.casename)
     OPF = open(txtname, 'w')
     header = '%40s' %('Function Name')
     for k in range(nl):
@@ -200,8 +227,8 @@ class Profiler:
     OPF.write(header+'\n')
 
     for i in range(len(self.function_list)):
-      print('self.function_list[%d] = %s' %(i, self.function_list[i]))
-      print('self.statstime[i] = ', self.statstime[i])
+     #print('self.function_list[%d] = %s' %(i, self.function_list[i]))
+     #print('self.statstime[i] = ', self.statstime[i])
       txtinfo = '%40s' %(self.function_list[i])
       npnts = 0
       for k in range(nl):
@@ -214,10 +241,10 @@ class Profiler:
         if(y[k] > self.shortest_time):
           npnts += 1
       OPF.write(txtinfo+'\n')
-      print('x = ', x[0:npnts])
-      print('y = ', y[0:npnts])
-      print('self.colorlist[%d] = %s' %(i, self.colorlist[i]))
-      print('self.linestyle[%d] = %s' %(i, self.linestyle[i]))
+     #print('x = ', x[0:npnts])
+     #print('y = ', y[0:npnts])
+     #print('self.colorlist[%d] = %s' %(i, self.colorlist[i]))
+     #print('self.linestyle[%d] = %s' %(i, self.linestyle[i]))
       if(npnts > 1):
         ax.plot(x[0:npnts], y[0:npnts], color=self.colorlist[i], linewidth=2,
                 linestyle=self.linestyle[i], alpha=0.9)
@@ -286,9 +313,162 @@ class Profiler:
    #(smaller value results in more space being made for the legend)
 
     if(self.linear):
-      imgname = 'lin_%s_obs_timing.png' %(self.casename)
+      imgname = '%s/lin_timing_sum.png' %(self.casename)
     else:
-      imgname = 'log_%s_obs_timing.png' %(self.casename)
+      imgname = '%s/log_timing_sum.png' %(self.casename)
+
+    if(self.output):
+      plt.savefig(imgname)
+    else:
+      plt.show()
+
+    for name in self.sumfunction_list:
+      self.plot_obs(name)
+
+  def plot_obs(self, obsname):
+    try:
+      plt.close('all')
+      plt.clf()
+      plt.cla()
+    except Exception:
+      pass
+
+    item = obsname.split('::')
+    varname = item[1]
+
+    print('obsname = ', obsname)
+    print('varname = ', varname)
+
+    print('keys of self.sumstats = ',  self.sumstats.keys())
+
+    stats = self.sumstats[obsname]
+    names = self.sumnames[obsname]
+
+    print('keys of stats = ', stats.keys())
+    print('names = ', names)
+
+    title = 'Timing of %s' %(varname)
+
+    nl = len(self.nodelist)
+    x = np.zeros((nl), dtype=float)
+    y = np.zeros((nl), dtype=float)
+    z = np.zeros((nl), dtype=float)
+    xlabels = []
+    for k in range(nl):
+      x[k] = self.nodelist[k]
+      lbl = '%d' %(self.nodelist[k])
+      xlabels.append(lbl)
+
+    pmin = 1.0/128.0
+    pmax = 0.001*np.max(stats['sum'])/60.0
+    ylabels = []
+    yp = []
+    pcur = pmin/2.0
+    while(pcur < pmax):
+      pcur *= 4.0
+      lbl = '%6.2f' %(pcur)
+      ylabels.append(lbl)
+      yp.append(pcur)
+     #print('yp = ', yp)
+    pmax = pcur
+
+    fig = plt.figure()
+    ax = plt.subplot()
+
+    if(self.linear):
+      plt.xscale('linear')
+    else:
+     #plt.xscale('log', base=2)
+     #plt.yscale('log', base=10)
+      plt.xscale('log', basex=2)
+      plt.yscale('log', basey=2)
+      plt.xticks(x, xlabels)
+     #plt.xticks(x, xlabels, rotation ='vertical')
+      plt.yticks(yp, ylabels)
+
+    txtname = '%s/timing_%s.csv' %(self.casename, varname)
+    OPF = open(txtname, 'w')
+    header = '%40s' %('Function Name')
+    for k in range(nl):
+      header = '%s, %12d' %(header, self.nodelist[k])
+    OPF.write(header+'\n')
+
+    legneds = names
+    i = 0
+    for key in legneds:
+      txtinfo = '%40s' %(obsname)
+      npnts = 0
+      for k in range(nl):
+        y[k] = 0.001*stats[key][k]/60.0
+        txtinfo = '%s, %12.2f' %(txtinfo, y[k])
+        if(y[k] > self.shortest_time):
+          npnts += 1
+      OPF.write(txtinfo+'\n')
+      if(npnts > 1):
+        ax.plot(x[0:npnts], y[0:npnts], color=self.colorlist[i], linewidth=2,
+                linestyle=self.linestyle[i], alpha=0.9)
+      i += 1
+    OPF.close()
+
+    if(self.linear == 0):
+      i = 0
+      for key in stats.keys():
+        npnts = 0
+        for k in range(nl):
+          fact = 1.0/np.log2(2*self.nodelist[k])
+          z[k] = 0.001*stats[key][0]*fact/60.0
+          if(z[k] > self.shortest_time):
+            npnts += 1
+       #https://matplotlib.org/stable/gallery/lines_bars_and_markers/linestyles.html
+        if(npnts > 1):
+          ax.plot(x[0:npnts], z[0:npnts], color='black', linewidth=1, alpha=0.5, linestyle='dotted')
+        i += 1
+
+    plt.grid()
+
+   #Same limits for everybody!
+   #print('pmin: %f, pmax: %f' %(pmin, pmax))
+
+    plt.xlim(x[0], x[-1])
+    plt.ylim(pmin, pmax)
+ 
+   #general title
+   #title = '%s Timing (in minutes), min: %8.2f, max: %8.2f' %(self.casename, pmin, pmax)
+    title = 'Timing of %s (in minutes)' %(obsname)
+   #plt.suptitle(title, fontsize=13, fontweight=0, color='black', style='italic', y=1.02)
+    plt.suptitle(title, fontsize=16, fontweight=1, color='black')
+
+   #Create a big subplot
+    bs = fig.add_subplot(111, frameon=False)
+   #plt.subplots_adjust(bottom=0.2, right=0.70, top=0.8)
+   #plt.subplots_adjust(bottom=0.2, right=0.675, top=0.8)
+    plt.subplots_adjust(bottom=0.2, right=0.65, top=0.8)
+   #plt.subplots_adjust(bottom=0.2, right=0.5, top=0.8)
+
+   #hide tick and tick label of the big axes
+    plt.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
+
+    bs.set_xlabel('Node', labelpad=10) # Use argument `labelpad` to move label downwards.
+    bs.set_ylabel('Time (minutes)', labelpad=20)
+
+   #Create the legend
+    fig.legend(ax, labels=legneds,
+               loc="center right",   # Position of legend
+               fontsize=6,
+               borderpad=1.2,
+               handlelength=1.5)
+
+#          borderpad=1.2,
+#          labelspacing=1.2,
+#          handlelength=1.5
+
+   #Adjust the scaling factor to fit your legend text completely outside the plot
+   #(smaller value results in more space being made for the legend)
+
+    if(self.linear):
+      imgname = '%s/lin_timing_%s.png' %(self.casename, varname)
+    else:
+      imgname = '%s/log_timing_%s.png' %(self.casename, varname)
 
     if(self.output):
       plt.savefig(imgname)
@@ -331,7 +511,7 @@ if __name__== '__main__':
   pr = Profiler(debug=debug, corelist=corelist, nodelist=nodelist, output=output,
                 workdir=workdir, casename=casename, linear=linear)
   pr.process()
-  for linear in [1, 0]:
+  for linear in [0, 1]:
     pr.set_linear(linear=linear)
     for output in [0, 1]:
    #for output in [1]:
