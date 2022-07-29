@@ -1,0 +1,16 @@
+#!/bin/bash
+
+ set -x
+
+ for flnm in \
+   sfc_ps_obs_2020011006 \
+   sfcship_ps_obs_2020011006 \
+   sondes_ps_obs_2020011006
+ do
+   python modifyIODA2Obs-all.py \
+     --dirname=sfc_ps_out \
+     --filename=${flnm}_0000.nc4
+
+   mv ${flnm}.nc4 ${flnm}_0000.nc4
+ done
+
