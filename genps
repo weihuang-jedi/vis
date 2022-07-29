@@ -8,13 +8,19 @@
 
  var_list=(sfc_ps sfcship_ps sondes_ps)
 
+<<<<<<< HEAD
 #gridfile=regrid/lonlat_sfc-letkf-nbc.nc
+=======
+>>>>>>> 1e65deecb93b2e797e71d7c27ba0128b055d9edd
  gridfile=regrid/lonlat_sfc-letkf.nc
  if [ ! -f ${gridfile} ]
  then
    cd regrid
    rm -f fv3latlon.nc
+<<<<<<< HEAD
   #interp.sh ${case_dir}/sfc-letkf/analysis.2/increment/
+=======
+>>>>>>> 1e65deecb93b2e797e71d7c27ba0128b055d9edd
    interp.sh ${case_dir}/sfc-letkf/analysis/increment/
    cd ..
    mv regrid/fv3latlon.nc ${gridfile}

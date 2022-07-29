@@ -2,10 +2,12 @@
 
  set -x
 
- caselist=(amsua iasi aircraft sfcship sondes surf satwind scatwind vadwind windprof)
+#caselist=(amsua iasi aircraft sfcship sondes surf satwind scatwind vadwind windprof)
+ caselist=(amsua iasi aircraft sondes satwind scatwind)
 
  for i in ${!caselist[@]}
  do
-   python profiling.py --casename=${caselist[$i]}
+  #python main_timing.py --casename=${caselist[$i]}
+   python obs_timing.py --casename=${caselist[$i]}
  done
 

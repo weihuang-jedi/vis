@@ -43,7 +43,8 @@ class MakePanelPlot():
 
    #iterate over axes
     for i, ax in enumerate(axes):
-      imageprefix = '%s_%s_increment_lev' %(casename, varname)
+     #imageprefix = '%s_%s_increment_lev' %(casename, varname)
+      imageprefix = '%s_lev' %(casename)
       imgname = img[i].replace('FAKENAME', imageprefix)
       im = image.imread(imgname)
       ax.axis('off')
