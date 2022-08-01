@@ -1,0 +1,67 @@
+How to run JEDI with radiosondes
+
+Wei Huang
+
+This is for runs on orion.
+
+1. convert GSI daignose observation file to IODA2
+   a. working directory: /work2/noaa/gsienkf/weihuang/jedi/case_study/diag2iodav2
+   b. prepare observation files to "obs" directory, like:
+      diag_conv_t_ges.2020011006_ensmean2.nc4
+      diag_conv_q_ges.2020011006_ensmean2.nc4
+      diag_conv_uv_ges.2020011006_ensmean2.nc4
+   c. run script diag2ioda.sh
+   d. after run this script, generate ioda2 observation files in directory "out", like:
+      aircraft_q_obs_2020011006.nc4
+      aircraft_tsen_obs_2020011006.nc4
+      aircraft_uv_obs_2020011006.nc4
+      satwind_obs_2020011006.nc4
+      scatwind_obs_2020011006.nc4
+      sfc_ps_obs_2020011006.nc4
+      sfcship_ps_obs_2020011006.nc4
+      sfcship_q_obs_2020011006.nc4
+      sfcship_tsen_obs_2020011006.nc4
+      sfcship_tv_obs_2020011006.nc4
+      sfcship_uv_obs_2020011006.nc4
+      sondes_ps_obs_2020011006.nc4
+      sondes_q_obs_2020011006.nc4
+      sondes_tsen_obs_2020011006.nc4
+      sondes_tv_obs_2020011006.nc4
+      sondes_uv_obs_2020011006.nc4
+      vadwind_obs_2020011006.nc4
+      windprof_obs_2020011006.nc4
+
+2. rename above directory to JEDI top directory as directory: ioda_v2_data
+   For run with sondes only, files:
+      sondes_q_obs_2020011006.nc4
+      sondes_tsen_obs_2020011006.nc4
+      sondes_tv_obs_2020011006.nc4
+   are used.
+
+   NOTE: use sondes_ps_obs_2020011006.nc4 as surface pressure data will be more convient,
+	 as it is close to surface observations.
+
+3. run JEDI sondes data
+   a. prepare ensemble Data, as in: /work2/noaa/gsienkf/weihuang/jedi/Data/ens
+   b. working directory: /work2/noaa/gsienkf/weihuang/jedi/case_study/sondes
+   c. edit script gen.sh:
+	i) setup task used per node
+	ii) Number of ensembles members
+	iii) IO layout
+	iv) number of node used
+	v) casename
+	vi) datetime
+	vii) obsin(s)
+	viii) obsout(s)
+	ix) link Data and obs directory
+	x) process two templates: slurm.template for a run script: run.slurm;
+                                  getkf.yaml.template to produce getkf.yaml file.
+	xi) run as batch job: "sbatch run.slurm".
+
+4. in getkf.yaml.template, there are kinds of output options.
+   a. the current option is output to FV3 tiles.
+      in directory: /work2/noaa/gsienkf/weihuang/jedi/case_study/vis/regrid
+      one can use interp.sh to interpolate FV3 cube data to regular lat-lon grid.
+   b. commented out one is latlon (actually Gaussian) grid.
+      be aware that this Gaussian grid may not exactly the same as GSI Gaussian grid.
+

@@ -130,12 +130,6 @@ class ModifyOMB():
 
     n = 0
     for grp in ncin.groups:
-      if(grp.find('hofxm0_') >=0):
-        continue
-
-      if(grp.find('hofx_y_mean_xb0') >=0):
-        continue
-
       n += 1
       if (self.debug):
         print('\tgroup No. %d: %s' %(n, grp))
