@@ -77,7 +77,8 @@ class Profiler:
       for node in self.nodelist:
         totalcpus = task*node
         rundir = '%s/soca_solver.%dt%dn_%dp' %(self.workdir, task, node, totalcpus)
-        flnm = '%s/stdoutNerr/stdout.00000000' %(rundir)
+       #flnm = '%s/stdoutNerr/stdout.00000000' %(rundir)
+        flnm = '%s/log.soca_solver' %(rundir)
 
         if(os.path.exists(flnm)):
          #if(self.debug):
@@ -308,31 +309,22 @@ class Profiler:
     except Exception:
       pass
 
-    title = 'Timing by Task'
+   #title = 'Timing by Task'
+    title = 'Timing by Task (separate reinit obs)'
 
     nl = len(self.nodelist)
     x = np.zeros((nl), dtype=float)
     y = np.zeros((nl), dtype=float)
-    labels = []
+    xlabels = []
     for k in range(nl):
       x[k] = self.nodelist[k]
       lbl = '%d' %(self.nodelist[k])
-      labels.append(lbl)
+      xlabels.append(lbl)
 
    #print('x = ', x)
 
     fig, axes = plt.subplots(nrows=2, ncols=2, sharex=True, sharey=True)
     ax = axes.flatten()
-
-    if(self.linear):
-      plt.xscale('linear')
-    else:
-     #plt.xscale('linear')
-      plt.xscale('log', base=2)
-      plt.yscale('log', base=10)
-
-      plt.xticks(x, labels)
-     #plt.xticks(x, labels, rotation ='vertical')
 
     pmin = 1.0e20
     pmax = 0.0
@@ -353,10 +345,43 @@ class Profiler:
      #label physical distance to the left and up:
       ax[n].set_title(label, fontsize=8)
 
+   #Adjust pmin, pmax
+    pvmin = 1.0
+    while(pvmin > pmin):
+      pvmin /= 2.0
+    pmin = pvmin
+    pvmax = 1.0
+    while(pvmax < pmax):
+      pvmax *= 2.0
+    pmax = pvmax
+
+    ylabels = []
+    ypoints = []
+    pv = pvmin
+    while(pv <= pvmax):
+      ypoints.append(pv)
+      lbl = '%6.1f' %(pv)
+      ylabels.append(lbl)
+      pv *= 2.0
+
+    if(self.linear):
+      plt.xscale('linear')
+    else:
+     #plt.xscale('linear')
+     #plt.yscale('log', base=10)
+      plt.xscale('log', base=2)
+      plt.yscale('log', base=2)
+
+      plt.xticks(x, xlabels)
+     #plt.xticks(x, xlabels, rotation ='vertical')
+      plt.yticks(ypoints, ylabels)
+
    #Same limits for everybody!
     print('pmin: %f, pmax: %f' %(pmin, pmax))
     plt.xlim(x[0], x[-1])
     plt.ylim(pmin, pmax)
+
+    plt.grid()
  
    #general title
    #plt.suptitle(title, fontsize=13, fontweight=0, color='black', style='italic', y=1.02)
@@ -376,16 +401,19 @@ class Profiler:
     fig.legend(ax, labels=self.function_list,
            loc='center right',   # Position of legend
            title='Funcs Legend', # Title for the legend
-           fontsize=8,
-           borderpad=1.2,
-           labelspacing=1.2,
-           handlelength=1.5
+           fontsize=8
            )
+#          borderpad=1.2,
+#          labelspacing=1.2,
+#          handlelength=1.5
 
     if(self.linear):
-      imgname = 'lin_panel_by_task.png'
+     #imgname = 'lin_panel_by_task.png'
+      imgname = 'separate_reinit_obs_lin_panel_by_task.png'
     else:
-      imgname = 'log_panel_by_task.png'
+     #imgname = 'log_panel_by_task.png'
+      imgname = 'separate_reinit_obs_log_panel_by_task.png'
+
     if(self.output):
       plt.savefig(imgname)
     else:
@@ -399,7 +427,8 @@ class Profiler:
     except Exception:
       pass
 
-    title = 'Timing by Node'
+   #title = 'Timing by Node'
+    title = 'Timing by Node (separate reinit obs)'
 
     nl = len(self.tasklist)
     x = np.zeros((nl), dtype=float)
@@ -417,7 +446,9 @@ class Profiler:
     else:
       plt.xscale('linear')
      #plt.xscale('log', base=2)
-      plt.yscale('log', base=10)
+     #plt.yscale('log', base=10)
+      plt.xscale('log', base=2)
+      plt.yscale('log', base=2)
 
     pmin = 1.0e20
     pmax = 0.0
@@ -474,9 +505,11 @@ class Profiler:
    #(smaller value results in more space being made for the legend)
 
     if(self.linear):
-      imgname = 'lin_panel_by_node.png'
+     #imgname = 'lin_panel_by_node.png'
+      imgname = 'separate_reinit_obs_lin_panel_by_node.png'
     else:
-      imgname = 'log_panel_by_node.png'
+     #imgname = 'log_panel_by_node.png'
+      imgname = 'separate_reinit_obs_log_panel_by_node.png'
     if(self.output):
       plt.savefig(imgname)
     else:
@@ -486,13 +519,16 @@ class Profiler:
 if __name__== '__main__':
   debug = 1
   output = 0
-  workdir = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver'
+ #workdir = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver'
+  workdir = '/work2/noaa/gsienkf/weihuang/jedi/run.soca'
  #tasklist = [20, 24, 30, 36, 40]
-  tasklist = [20, 30, 36, 40]
+ #tasklist = [20, 30, 36, 40]
+ #tasklist = [20, 32, 36, 40]
+  tasklist = [32, 36, 40]
   nodelist = [2, 4, 6, 8, 10, 12]
   linear = 1
 
-  opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'workdir=',
+  opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'workdir=', 'output=',
                              'tasklist=', 'nodelist='])
 
   for o, a in opts:

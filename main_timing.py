@@ -190,8 +190,10 @@ class Profiler:
     else:
      #plt.xscale('log', base=2)
      #plt.yscale('log', base=10)
-      plt.xscale('log', basex=2)
-      plt.yscale('log', basey=2)
+     #plt.xscale('log', basex=2)
+     #plt.yscale('log', basey=2)
+      plt.xscale('log', base=2)
+      plt.yscale('log', base=2)
       plt.xticks(x, xlabels)
      #plt.xticks(x, xlabels, rotation ='vertical')
       plt.yticks(yp, ylabels)
@@ -306,8 +308,8 @@ class Profiler:
 if __name__== '__main__':
   debug = 1
   casename = 'sondes'
- #workdir = '/work2/noaa/gsienkf/weihuang/jedi/case_study'
-  workdir = '/scratch2/BMC/gsienkf/Wei.Huang/tools/vis_tools'
+  workdir = '/work2/noaa/gsienkf/weihuang/jedi/case_study'
+ #workdir = '/scratch2/BMC/gsienkf/Wei.Huang/tools/vis_tools'
   corelist = [36, 78, 156, 312]
  #corelist = [36, 72, 144, 288]
   nodelist = [1, 2, 4, 8]

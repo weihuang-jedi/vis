@@ -173,10 +173,10 @@ class CreateGSIobs():
 #-----------------------------------------------------------------------------------------
 if __name__ == '__main__':
   debug = 1
-  dirname = '/work2/noaa/gsienkf/weihuang/jedi/case_study/surf/ioda_v2_data'
- #filename = 'sfc_ps_obs_2020011006_0000.nc4'
- #filename = 'sfcship_ps_obs_2020011006_0000.nc4'
-  filename = 'sondes_ps_obs_2020011006_0000.nc4'
+  indir = '/work2/noaa/gsienkf/weihuang/jedi/case_study/sfc-letkf/obsout'
+  infile = 'sfcship_ps_obs_2020011006_0000.nc4'
+  outdir = '/work2/noaa/gsienkf/weihuang/jedi/case_study/sfc-letkf/gsihofxbc'
+  outfile = 'sfcship_ps_obs_2020011006_0000.nc4'
 
   opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'dirname=', 'filename='])
 

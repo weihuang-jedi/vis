@@ -202,31 +202,24 @@ class GeneratePlot():
 #------------------------------------------------------------------
 if __name__== '__main__':
   debug = 1
-  output = 1
-  gridf = 'regrid/grids/ocn_2014_01.nc'
-  file1 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.20t4n_80p/ocn.LETKF.an.2015-12-01T12:00:00Z.nc'
- #file1 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.24t2n_48p/ocn.LETKF.an.2015-12-01T12:00:00Z.nc'
- #file1 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.20t2n_40p/new-run-output/ocn.LETKF.an.2015-12-01T12:00:00Z.nc'
-  file2 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.20t2n_40p/ocn.LETKF.an.2015-12-01T12:00:00Z.nc'
- #file2 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.40t6n_240p/ocn.LETKF.an.2015-12-01T12:00:00Z.nc'
+  output = 0
 
- #file1 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.20t2n_40p/new-run-output/ocn.LETKF.fc.2015-12-01T12:00:00Z.PT0S.nc'
- #file2 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.20t2n_40p/ocn.LETKF.fc.2015-12-01T12:00:00Z.PT0S.nc'
-
-  ncg = netCDF4.Dataset(gridf, 'r')
+  gridfile = '../regrid/grids/ocn_2014_01.nc'
+  ncg = netCDF4.Dataset(gridfile, 'r')
   lon = ncg.variables['geolon'][:,:]
   lat = ncg.variables['geolat'][:,:]
   ncg.close()
 
-  varname = 'Temp'
- #varname = 'Salt'
+  opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'output='])
 
-  nc1 = netCDF4.Dataset(file1, 'r')
-  nc2 = netCDF4.Dataset(file2, 'r')
-  temp1 = nc1.variables[varname][0,:,:,:]
-  temp2 = nc2.variables[varname][0,:,:,:]
-  nc1.close()
-  nc2.close()
+  for o, a in opts:
+    if o in ('--debug'):
+      debug = int(a)
+    elif o in ('--output'):
+      output = int(a)
+    else:
+      print('option: ', a)
+      assert False, 'unhandled option'
 
   gp = GeneratePlot(debug=debug, output=output)
 
@@ -235,15 +228,62 @@ if __name__== '__main__':
   lon1d = np.where(lon1d > 0, lon1d, lon1d+360.0)
   gp.set_grid(lat1d, lon1d)
 
-  nlay, nlat, nlon = temp1.shape
-  print('temp1.shape: ', temp1.shape)
+  dir1 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver'
+  dir2 = '/work2/noaa/gsienkf/weihuang/jedi/run.soca'
 
-  for n in range(nlay):
-    val = temp2[n,:,:] - temp1[n,:,:]
-    val1d = val.flatten()
-    print('val.shape: ', val.shape)
-    name = 'diff_%s_level_%d' %(varname, n)
-    gp.set_imagename(name)
-    gp.set_title(name)
-    gp.plot(val1d)
+  varname = 'Temp'
+ #varname = 'Salt'
+
+  for taskspernode in [20, 32, 36, 40]:
+    for node in [2, 4, 6, 8, 10, 12]:
+      totalcpus = taskspernode*node
+     #case = 'soca_solver.40t2n_80p'
+      case = 'soca_solver.%dt%dn_%dp' %(taskspernode, node, totalcpus)
+
+     #file1 = '%s/%s/ocn.LETKF.an.2015-12-01T12:00:00Z.nc' %(dir1, case)
+     #file2 = '%s/%s/ocn.LETKF.an.2015-12-01T12:00:00Z.nc' %(dir2, case)
+
+      file1 = '%s/%s/ocn.LETKF.fc.2015-12-01T12:00:00Z.PT0S.nc' %(dir1, case)
+      file2 = '%s/%s/ocn.LETKF.fc.2015-12-01T12:00:00Z.PT0S.nc' %(dir2, case)
+
+      if(os.path.exists(file1)):
+        pass
+      else:
+        print('file1: %s does not exist, stop' %(file1))
+        continue
+       #sys.exit(-1)
+      if(os.path.exists(file2)):
+        pass
+      else:
+        print('file2: %s does not exist, stop' %(file2))
+        continue
+       #sys.exit(-1)
+
+      print('file1: ', file1)
+      print('file2: ', file2)
+
+      nc1 = netCDF4.Dataset(file1, 'r')
+      nc2 = netCDF4.Dataset(file2, 'r')
+      temp1 = nc1.variables[varname][0,:,:,:]
+      temp2 = nc2.variables[varname][0,:,:,:]
+      nc1.close()
+      nc2.close()
+
+      difftemp = temp2 - temp1
+
+      print('%s diff min: %f, max: %f' %(varname, np.min(difftemp), np.max(difftemp)))
+
+      nlay, nlat, nlon = temp1.shape
+     #print('temp1.shape: ', temp1.shape)
+
+     #for n in range(nlay):
+      for n in [0]:
+        val = temp2[n,:,:] - temp1[n,:,:]
+        val1d = val.flatten()
+       #print('val.shape: ', val.shape)
+        name = '%s-diff_%s_level_%d.png' %(case, varname, n)
+        gp.set_imagename(name)
+        title = '%s diff %s at level %d' %(case, varname, n)
+        gp.set_title(title)
+        gp.plot(val1d)
 

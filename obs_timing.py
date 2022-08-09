@@ -183,8 +183,10 @@ class Profiler:
     else:
      #plt.xscale('log', base=2)
      #plt.yscale('log', base=10)
-      plt.xscale('log', basex=2)
-      plt.yscale('log', basey=2)
+     #plt.xscale('log', basex=2)
+     #plt.yscale('log', basey=2)
+      plt.xscale('log', base=2)
+      plt.yscale('log', base=2)
       plt.xticks(x, xlabels)
      #plt.xticks(x, xlabels, rotation ='vertical')
       plt.yticks(yp, ylabels)
@@ -299,15 +301,15 @@ class Profiler:
 if __name__== '__main__':
   debug = 1
   casename = 'sondes'
- #workdir = '/work2/noaa/gsienkf/weihuang/jedi/case_study'
-  workdir = '/scratch2/BMC/gsienkf/Wei.Huang/tools/vis_tools'
+  workdir = '/work2/noaa/gsienkf/weihuang/jedi/case_study'
+ #workdir = '/scratch2/BMC/gsienkf/Wei.Huang/tools/vis_tools'
   corelist = [36, 78, 156, 312]
  #corelist = [36, 72, 144, 288]
   nodelist = [1, 2, 4, 8]
   output = 0
   linear = 1
 
-  opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'workdir=',
+  opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'workdir=', 'output=',
                              'corelist=', 'nodelist=', 'casename='])
 
   for o, a in opts:
@@ -322,7 +324,7 @@ if __name__== '__main__':
     elif o in ('--casename'):
       casename = a
     elif o in ('--output'):
-      output = a
+      output = int(a)
     elif o in ('--linear'):
       linear = int(a)
     else:
@@ -331,11 +333,11 @@ if __name__== '__main__':
   pr = Profiler(debug=debug, corelist=corelist, nodelist=nodelist, output=output,
                 workdir=workdir, casename=casename, linear=linear)
   pr.process()
- #for linear in [1, 0]:
-  for linear in [0]:
+  for linear in [1, 0]:
+ #for linear in [0]:
     pr.set_linear(linear=linear)
-    for output in [0, 1]:
-   #for output in [1]:
+   #for output in [0, 1]:
+    for output in [1]:
       pr.set_output(output=output)
       pr.plot()
 
