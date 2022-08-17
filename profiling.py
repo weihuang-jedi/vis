@@ -36,6 +36,9 @@ class Profiler:
     self.output = output
     self.linear = linear
 
+    self.pvmax = 256.0
+    self.pvmin = 0.125
+
     if(workdir is None):
       print('workdir not defined. Exit.')
       sys.exit(-1)
@@ -63,10 +66,6 @@ class Profiler:
                               'oops::GETKFSolver::measurementUpdate',
                               'oops::State::State']
 #                             'oops::LocalEnsembleSolver::computeHofX']
-    self.pmin = 1.0e10
-    self.gmin = 1.0e10
-    self.pmax = 0.0
-    self.gmax = 0.0
 
     self.max_selected_functions = 6
     self.num_selected_functions = 0
@@ -75,6 +74,10 @@ class Profiler:
 
     self.get_top_functions()
    #self.generate_top_function_list()
+
+  def set_minmax(self, vmin=0.125, vmax=256.0):
+    self.pvmin = vmin
+    self.pvmax = vmax
 
   def set_linear(self, linear=1):
     self.linear = linear
@@ -104,13 +107,27 @@ class Profiler:
         self.selected_functions_name[n] = oname
       n -= 1
 
+  def get_filename(self, rundir):
+    nf = 1
+    has_more = True
+    while(has_more):
+      ftmp = '%s/log.getkf.%d' %(rundir, nf)
+      nf += 1
+
+      if(os.path.exists(ftmp)):
+        flnm = ftmp
+      else:
+        has_more = False
+    return flnm
+
   def get_top_functions(self):
     self.selected_function_list = []
    #par_stats = self.parstatslist[0]
 
     rundir = '%s/%s/run_80.40t%dn_%dp' %(self.workdir, self.casename,
               self.nodelist[0], self.corelist[0])
-    flnm = '%s/stdoutNerr/stdout.00000000' %(rundir)
+   #flnm = '%s/stdoutNerr/stdout.00000000' %(rundir)
+    flnm = self.get_filename(rundir)
 
     if(os.path.exists(flnm)):
       if(self.debug):
@@ -150,7 +167,8 @@ class Profiler:
     for n in range(len(self.nodelist)):
       rundir = '%s/%s/run_80.40t%dn_%dp' %(self.workdir, self.casename,
                 self.nodelist[n], self.corelist[n])
-      flnm = '%s/stdoutNerr/stdout.00000000' %(rundir)
+     #flnm = '%s/stdoutNerr/stdout.00000000' %(rundir)
+      flnm = self.get_filename(rundir)
 
       if(os.path.exists(flnm)):
        #if(self.debug):
@@ -300,11 +318,6 @@ class Profiler:
 
       stats.append(tinfo)
 
-      if(self.pmin > ft):
-        self.pmin = ft
-      if(self.pmax < ft):
-        self.pmax = ft
-
     return ns, stats
 
   def plot(self):
@@ -321,49 +334,69 @@ class Profiler:
     x = np.zeros((nl), dtype=float)
     y = np.zeros((nl), dtype=float)
     z = np.zeros((nl), dtype=float)
-    labels = []
+    xlabels = []
     for k in range(nl):
       x[k] = self.nodelist[k]
       lbl = '%d' %(self.nodelist[k])
-      labels.append(lbl)
+      xlabels.append(lbl)
 
     fig = plt.figure()
     ax = plt.subplot()
 
-    if(self.linear):
-      plt.xscale('linear')
-    else:
-      plt.xscale('log', base=2)
-      plt.yscale('log', base=10)
-      plt.xticks(x, labels)
-     #plt.xticks(x, labels, rotation ='vertical')
-
-    pmin = 1.0e20
-    pmax = 0.0
+    pmin = 0.001*self.paravgtimelist[0][0]/60.0
+    pmax = pmin
 
     txtname = 'timing_%s.csv' %(self.casename)
     OPF = open(txtname, 'w')
-    header = '%40s, %12s\n' %('Function Name', 'Avg Time (seconds)')
+    header = '%40s, %8s\n' %('Function Name', 'Avg Time (seconds)')
     OPF.write(header)
 
     for i in range(len(self.fullfunction_list)):
       for k in range(nl):
-        y[k] = 0.001*self.paravgtimelist[k][i]
+        y[k] = 0.001*self.paravgtimelist[k][i]/60.0
         if(pmin > y[k]):
           pmin = y[k]
         if(pmax < y[k]):
           pmax = y[k]
      #print('y = ', y)
       ax.plot(x, y, color=self.colorlist[i], linewidth=2, alpha=0.9)
-      txtinfo = '%40s, %12.2f\n' %(self.fullfunction_list[i], y[0])
+      txtinfo = '%40s, %8.2f\n' %(self.fullfunction_list[i], y[0])
       OPF.write(txtinfo)
     OPF.close()
+
+    pvmin = 1.0
+    while(pvmin > pmin):
+      pvmin *= 0.5
+    pvmax = 1.0
+    while(pvmax < pmax):
+      pvmax *= 2.0
+    pvmin = 0.125
+    pvmax = 256.0
+
+    ylp = []
+    ylabels = []
+    pv = pvmin
+    while(pv <= pvmax):
+      ylp.append(pv)
+      lbl = '%6.2f' %(pv)
+      ylabels.append(lbl)
+      pv *= 2.0
+
+    if(self.linear):
+      plt.xscale('linear')
+    else:
+      plt.xscale('log', base=2)
+      plt.yscale('log', base=2)
+     #plt.yscale('log', base=10)
+      plt.xticks(x, xlabels)
+     #plt.xticks(x, xlabels, rotation ='vertical')
+      plt.yticks(ylp, ylabels)
 
     if(self.linear == 0):
       for i in range(len(self.fullfunction_list)):
         for k in range(nl):
           fact = 1.0/np.log2(2*self.nodelist[k])
-          z[k] = 0.001*self.paravgtimelist[0][i]*fact
+          z[k] = 0.001*self.paravgtimelist[0][i]*fact/60.0
        #https://matplotlib.org/stable/gallery/lines_bars_and_markers/linestyles.html
         ax.plot(x, z, color='black', linewidth=1, alpha=0.5, linestyle='dotted')
 
@@ -420,7 +453,7 @@ if __name__== '__main__':
  #corelist = [36, 72, 144, 288]
   nodelist = [1, 2, 4, 8]
   output = 0
-  linear = 1
+  linear = 0
 
   opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'workdir=',
                              'corelist=', 'nodelist=', 'casename='])
@@ -446,10 +479,7 @@ if __name__== '__main__':
   pr = Profiler(debug=debug, corelist=corelist, nodelist=nodelist, output=output,
                 workdir=workdir, casename=casename, linear=linear)
   pr.process()
-  for linear in [0, 1]:
-    pr.set_linear(linear=linear)
-   #for output in [0, 1]:
-    for output in [1]:
-      pr.set_output(output=output)
-      pr.plot()
+  pr.set_linear(linear=linear)
+  pr.set_output(output=output)
+  pr.plot()
 
