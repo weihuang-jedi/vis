@@ -51,26 +51,14 @@ class Profiler:
       print('nodelist not defined. Exit.')
       sys.exit(-1)
 
-    self.colorlist = ['red', 'blue', 'green', 'orange', 'royalblue', 'cyan', 'mangenta']
-    self.funclabels = ['total',
-                       'GETKF_computeHofX',
-                       'changeVar',
-                       'measurementUpdate',
-                       'computeWeights',
-                       'State']
-#                      'Local_computeHofX']
-    self.funclist = ['util::Timers::Total',
-                     'oops::GETKFSolver::computeHofX',
-                     'oops::VariableChange::changeVar',
-                     'oops::GETKFSolver::measurementUpdate',
-                     'oops::GETKFSolver::computeWeights',
-                     'oops::State::State']
-#                    'oops::LocalEnsembleSolver::computeHofX']
+    if(not os.path.exists(casename)):
+     #mode
+     #mode = 0o722
+     #os.makedirs(casename, mode)
+      os.makedirs(casename)
 
-    self.max_selected_functions = 6
-    self.num_selected_functions = 0
-    self.selected_functions_time = []
-    self.selected_functions_name = []
+    self.colorlist = ['red', 'blue', 'green', 'orange', 'royalblue', 'cyan',
+                      'magenta', 'lime', 'yellowgreen']
 
    #self.get_top_functions()
 
@@ -83,6 +71,36 @@ class Profiler:
 
   def set_output(self, output=1):
     self.output = output
+
+  def get_filename(self, rundir):
+    nf = 1
+    has_more = True
+    while(has_more):
+      ftmp = '%s/log.getkf.%d' %(rundir, nf)
+      nf += 1
+
+      if(os.path.exists(ftmp)):
+        flnm = ftmp
+      else:
+        has_more = False
+    return flnm
+
+  def get_top_functions(self, maxfuncs=6):
+    self.max_selected_functions = maxfuncs
+    self.num_selected_functions = 0
+    self.selected_function_list = []
+    self.selected_functions_time = []
+    self.selected_functions_name = []
+    par_stats = self.parstatslist[0]
+
+    for name in par_stats.keys():
+      avgt = par_stats[name]['avg']
+      self.add2selected_functions(name, avgt)
+
+    for n in range(self.num_selected_functions):
+      pinfo = 'No. %3.3d name: %-40s' %(n, self.selected_functions_name[n])
+      pinfo = '%s, time: %8.2f' %(pinfo, self.selected_functions_time[n])
+      print(pinfo)
 
   def add2selected_functions(self, name, avgt):
     n = self.num_selected_functions - 1
@@ -106,35 +124,8 @@ class Profiler:
         self.selected_functions_name[n] = oname
       n -= 1
 
-  def get_filename(self, rundir):
-    nf = 1
-    has_more = True
-    while(has_more):
-      ftmp = '%s/log.getkf.%d' %(rundir, nf)
-      nf += 1
-
-      if(os.path.exists(ftmp)):
-        flnm = ftmp
-      else:
-        has_more = False
-    return flnm
-
-  def get_top_functions(self):
-    self.selected_function_list = []
-    par_stats = self.parstatslist[0]
-
-    for name in par_stats.keys():
-      avgt = par_stats[name]['avg']
-      self.add2selected_functions(name, avgt)
-
-    for n in range(self.num_selected_functions):
-      pinfo = 'No. %3.3d name: %40s' %(n, self.selected_functions_name[n])
-      pinfo = '%s, time: %8.2f' %(pinfo, self.selected_functions_time[n])
-      print(pinfo)
-
   def process(self):
     self.parstatslist = []
-    self.paravgtimelist = []
 
     self.filelist = []
     for n in range(len(self.nodelist)):
@@ -149,9 +140,8 @@ class Profiler:
         if(self.debug):
           print('Processing node: %d, as file: %s' %(self.nodelist[n], flnm))
        #pstats, gstats = self.stats(flnm)
-        ptime, par_stats = self.stats(flnm)
+        par_stats = self.stats(flnm)
         self.filelist.append(flnm)
-        self.paravgtimelist.append(ptime)
         self.parstatslist.append(par_stats)
       else:
         print('Filename ' + flnm + ' does not exit. Stop')
@@ -180,20 +170,7 @@ class Profiler:
           nl += num_lines
         nl += 1
 
-   #return par_stats, gen_stats
-
-    avgtime = []
-
-    for n in range(len(self.funclist)):
-      name = self.funclist[n]
-      if(name in par_stats.keys()):
-        avgt = par_stats[name]['avg']
-      else:
-        avgt = 0.0
-
-      avgtime.append(avgt)
-
-    return avgtime, par_stats
+    return par_stats
 
   def parallel_time_stats(self, lines, nl):
    #headleng = 11
@@ -214,7 +191,7 @@ class Profiler:
       item = line.split(': ')
      #print(item)
       namestr = item[0].strip()
-      print(namestr)
+     #print(namestr)
       if(namestr.find('OOPS_STATS ') >= 0):
         name = namestr[headleng:]
       else:
@@ -232,13 +209,46 @@ class Profiler:
      #tinfo['percent'] = float(tlist[3])
      #tinfo['imbalance'] = float(tlist[4])
 
-      print('name: %s, avg: %f' %(name, tinfo['avg']))
+     #print('name: %s, avg: %f' %(name, tinfo['avg']))
 
       stats[name] = tinfo
 
     return ns, stats
 
-  def plot(self):
+  def get_main_statstime(self, funclabels, funclist):
+    self.funclabels = funclabels
+    self.funclist = funclist
+ 
+    il = len(self.funclist)
+    kl = len(self.nodelist)
+    statstime = np.zeros((il, kl))
+    for k in range(kl):
+      stats = self.parstatslist[k]
+      for i in range(il):
+        name = self.funclist[i]
+        if(name in stats.keys()):
+          statstime[i][k] = stats[name]['avg']*0.001/60.0
+
+    return statstime
+
+  def get_sum_statstime(self, funclabels, funclist):
+    self.funclabels = funclabels
+    self.funclist = funclist
+
+    il = len(self.funclist)
+    kl = len(self.nodelist)
+    statstime = np.zeros((il, kl))
+    for k in range(kl):
+      stats = self.parstatslist[k]
+      for i in range(il):
+        name = self.funclist[i]
+        for key in stats.keys():
+          if(key.find(name) == 0):
+            statstime[i][k] += stats[key]['avg']*0.001/60.0
+
+    return statstime
+
+  def plot(self, statstime, statsname):
     try:
       plt.close('all')
       plt.clf()
@@ -246,7 +256,7 @@ class Profiler:
     except Exception:
       pass
 
-    title = '%s Timing' %(self.casename)
+    title = '%s Timing of %s' %(statsname, self.casename)
 
     nl = len(self.nodelist)
     x = np.zeros((nl), dtype=float)
@@ -261,25 +271,31 @@ class Profiler:
     fig = plt.figure()
     ax = plt.subplot()
 
-    pmin = 0.001*self.paravgtimelist[0][0]/60.0
+    pmin = statstime[0][0]
     pmax = pmin
 
-    txtname = 'timing_%s.csv' %(self.casename)
+    txtname = '%s/timing_%s.csv' %(self.casename, statsname)
     OPF = open(txtname, 'w')
-    header = '%40s, %8s\n' %('Function Name', 'Avg Time (Minutes)')
+    header = '%s Avg Time (Minutes)\n' %(statsname)
     OPF.write(header)
 
+    header = 'Function Name'
     for i in range(len(self.funclist)):
+      header = '%s, %8d' %(header, i)
+    OPF.write(header+'\n')
+
+    for i in range(len(self.funclist)):
+      txtinfo = '%-40s' %(self.funclist[i])
       for k in range(nl):
-        y[k] = 0.001*self.paravgtimelist[k][i]/60.0
+        y[k] = statstime[i][k]
         if(pmin > y[k]):
           pmin = y[k]
         if(pmax < y[k]):
           pmax = y[k]
+        txtinfo = '%s, %8.2f' %(txtinfo, y[k])
      #print('y = ', y)
       ax.plot(x, y, color=self.colorlist[i], linewidth=2, alpha=0.9)
-      txtinfo = '%40s, %8.2f\n' %(self.funclist[i], y[0])
-      OPF.write(txtinfo)
+      OPF.write(txtinfo+'\n')
     OPF.close()
 
     pvmin = 1.0
@@ -314,7 +330,7 @@ class Profiler:
       for i in range(len(self.funclist)):
         for k in range(nl):
           fact = 1.0/np.log2(2*self.nodelist[k])
-          z[k] = 0.001*self.paravgtimelist[0][i]*fact/60.0
+          z[k] = statstime[i][0]*fact
        #https://matplotlib.org/stable/gallery/lines_bars_and_markers/linestyles.html
         ax.plot(x, z, color='black', linewidth=1, alpha=0.5, linestyle='dotted')
 
@@ -342,7 +358,7 @@ class Profiler:
     plt.tick_params(labelcolor='none', top='off', bottom='off', left='off', right='off')
 
     bs.set_xlabel('Node', labelpad=10) # Use argument `labelpad` to move label downwards.
-    bs.set_ylabel('Time (second)', labelpad=20)
+    bs.set_ylabel('Time (Minutes)', labelpad=20)
 
    #Create the legend
     fig.legend(ax, labels=self.funclabels,
@@ -357,9 +373,9 @@ class Profiler:
    #(smaller value results in more space being made for the legend)
 
     if(self.linear):
-      imgname = 'lin_%s_timing.png' %(self.casename)
+      imgname = '%s/lin_%s_timing.png' %(self.casename, statsname)
     else:
-      imgname = 'log_%s_timing.png' %(self.casename)
+      imgname = '%s/log_%s_timing.png' %(self.casename, statsname)
 
     if(self.output):
       plt.savefig(imgname)
@@ -403,5 +419,39 @@ if __name__== '__main__':
   pr.process()
   pr.set_linear(linear=linear)
   pr.set_output(output=output)
-  pr.plot()
 
+  main_funclabels = ['total',
+                     'GETKF_computeHofX',
+                     'changeVar',
+                     'measurementUpdate',
+                     'computeWeights',
+                     'State']
+#                    'Local_computeHofX']
+  main_funclist = ['util::Timers::Total',
+                   'oops::GETKFSolver::computeHofX',
+                   'oops::VariableChange::changeVar',
+                   'oops::GETKFSolver::measurementUpdate',
+                   'oops::GETKFSolver::computeWeights',
+                   'oops::State::State']
+#                  'oops::LocalEnsembleSolver::computeHofX']
+  statsname = '%s_main' %(casename)
+  statstime = pr.get_main_statstime(main_funclabels, main_funclist)
+  pr.plot(statstime, statsname)
+
+  sum_funclabels = ['sum(oops::GetValues)',
+                    'sum(oops::ObsError)',
+                    'sum(oops::ObsFilter)',
+                    'sum(oops::ObsSpace)',
+                    'sum(oops::ObsVector)',
+                    'sum(oops::ObsOperator)',
+                    'sum(oops::VariableChange)']
+  sum_funclist = ['oops::GetValues',
+                  'oops::ObsError',
+                  'oops::ObsFilter',
+                  'oops::ObsSpace',
+                  'oops::ObsVector',
+                  'oops::ObsOperator',
+                  'oops::VariableChange']
+  statsname = '%s_sum' %(casename)
+  statstime = pr.get_sum_statstime(sum_funclabels, sum_funclist)
+  pr.plot(statstime, statsname)
