@@ -215,6 +215,34 @@ class Profiler:
 
     return ns, stats
 
+  def get_minmax(self, statstime):
+    pmin = statstime[0][0]
+    pmax = pmin
+
+    il = len(self.funclist)
+    kl = len(self.nodelist)
+    for k in range(kl):
+      for i in range(il):
+        if(pmin > statstime[i][k]):
+          pmin = statstime[i][k]
+        if(pmax < statstime[i][k]):
+          pmax = statstime[i][k]
+
+    nm = 0
+    pvmin = 1.0
+    while((pvmin > pmin) and (nm < 5)):
+      pvmin *= 0.5
+      nm +=1
+
+    pvmax = 1.0
+    while(pvmax < pmax):
+      pvmax *= 2.0
+
+   #pvmin = 0.125
+   #pvmax = 256.0
+
+    return pmin, pmax, pvmin, pvmax
+
   def get_main_statstime(self, funclabels, funclist):
     self.funclabels = funclabels
     self.funclist = funclist
@@ -229,11 +257,15 @@ class Profiler:
         if(name in stats.keys()):
           statstime[i][k] = stats[name]['avg']*0.001/60.0
 
+    self.pmin, self.pmax, self.pvmin, self.pvmax = self.get_minmax(statstime)
+
     return statstime
 
   def get_sum_statstime(self, funclabels, funclist):
     self.funclabels = funclabels
     self.funclist = funclist
+
+   #print('in get_sum_statstime')
 
     il = len(self.funclist)
     kl = len(self.nodelist)
@@ -242,9 +274,47 @@ class Profiler:
       stats = self.parstatslist[k]
       for i in range(il):
         name = self.funclist[i]
+       #print('Node %d Func %d Name %s' %(k, i, name))
         for key in stats.keys():
           if(key.find(name) == 0):
             statstime[i][k] += stats[key]['avg']*0.001/60.0
+       #print('statstime[%d][%d] = %f' %(i, k, statstime[i][k]))
+
+    self.pmin, self.pmax, self.pvmin, self.pvmax = self.get_minmax(statstime)
+
+    return statstime
+
+  def get_sum_components(self, sumname):
+    self.funclabels = ['sum']
+    self.funclist = ['sum']
+
+    print('Working on sumname: %s' %(sumname))
+
+    ns = len(sumname)
+    il = 0
+    kl = len(self.nodelist)
+    stats = self.parstatslist[0]
+    for key in stats.keys():
+      if(key.find(sumname) == 0):
+        il += 1
+        self.funclist.append(key)
+        compname = key[ns+2:]
+        print('sumname: %s No. %d name: %s' %(sumname, il, compname))
+        self.funclabels.append(compname)
+
+    il = len(self.funclist)
+    kl = len(self.nodelist)
+    statstime = np.zeros((il, kl))
+    for k in range(kl):
+      stats = self.parstatslist[k]
+      keys = stats.keys()
+      for i in range(1, il):
+        name = self.funclist[i]
+        if(name in keys):
+          statstime[i][k] += stats[name]['avg']*0.001/60.0
+          statstime[0][k] += stats[name]['avg']*0.001/60.0
+
+    self.pmin, self.pmax, self.pvmin, self.pvmax = self.get_minmax(statstime)
 
     return statstime
 
@@ -255,8 +325,6 @@ class Profiler:
       plt.cla()
     except Exception:
       pass
-
-    title = '%s Timing of %s' %(statsname, self.casename)
 
     nl = len(self.nodelist)
     x = np.zeros((nl), dtype=float)
@@ -271,16 +339,15 @@ class Profiler:
     fig = plt.figure()
     ax = plt.subplot()
 
-    pmin = statstime[0][0]
-    pmax = pmin
-
     txtname = '%s/timing_%s.csv' %(self.casename, statsname)
     OPF = open(txtname, 'w')
     header = '%s Avg Time (Minutes)\n' %(statsname)
     OPF.write(header)
 
-    header = 'Function Name'
-    for i in range(len(self.funclist)):
+    print('text file: %s' %(txtname))
+
+    header = '%-40s' %('Function Name')
+    for i in range(nl):
       header = '%s, %8d' %(header, i)
     OPF.write(header+'\n')
 
@@ -288,29 +355,16 @@ class Profiler:
       txtinfo = '%-40s' %(self.funclist[i])
       for k in range(nl):
         y[k] = statstime[i][k]
-        if(pmin > y[k]):
-          pmin = y[k]
-        if(pmax < y[k]):
-          pmax = y[k]
         txtinfo = '%s, %8.2f' %(txtinfo, y[k])
      #print('y = ', y)
       ax.plot(x, y, color=self.colorlist[i], linewidth=2, alpha=0.9)
       OPF.write(txtinfo+'\n')
     OPF.close()
 
-    pvmin = 1.0
-    while(pvmin > pmin):
-      pvmin *= 0.5
-    pvmax = 1.0
-    while(pvmax < pmax):
-      pvmax *= 2.0
-    pvmin = 0.125
-    pvmax = 256.0
-
     ylp = []
     ylabels = []
-    pv = pvmin
-    while(pv <= pvmax):
+    pv = self.pvmin
+    while(pv <= self.pvmax):
       ylp.append(pv)
       lbl = '%6.2f' %(pv)
       ylabels.append(lbl)
@@ -340,13 +394,15 @@ class Profiler:
     plt.xlim(x[0], x[-1])
    #print('pmin: %f, pmax: %f' %(pmin, pmax))
    #plt.ylim(pmin, pmax)
-    print('pmin: %f, pmax: %f' %(pmin, pmax))
-    print('pvmin: %f, pvmax: %f' %(pvmin, pvmax))
-    plt.ylim(pvmin, pvmax)
+    print('pmin: %f, pmax: %f' %(self.pmin, self.pmax))
+    print('pvmin: %f, pvmax: %f' %(self.pvmin, self.pvmax))
+    plt.ylim(self.pvmin, self.pvmax)
  
    #general title
    #title = '%s Timing (in Minutes), min: %8.2f, max: %8.2f' %(self.casename, pmin, pmax)
-    title = '%s Timing (in Minutes)' %(self.casename)
+   #title = '%s Timing (in Minutes)' %(self.casename)
+    title = '%s Timing (in Minutes) of %s' %(statsname, self.casename)
+    print('plot title: %s' %(title))
    #plt.suptitle(title, fontsize=13, fontweight=0, color='black', style='italic', y=1.02)
     plt.suptitle(title, fontsize=16, fontweight=1, color='black')
 
@@ -436,7 +492,7 @@ if __name__== '__main__':
 #                  'oops::LocalEnsembleSolver::computeHofX']
   statsname = '%s_main' %(casename)
   statstime = pr.get_main_statstime(main_funclabels, main_funclist)
-  pr.plot(statstime, statsname)
+ #pr.plot(statstime, statsname)
 
   sum_funclabels = ['sum(oops::GetValues)',
                     'sum(oops::ObsError)',
@@ -454,4 +510,13 @@ if __name__== '__main__':
                   'oops::VariableChange']
   statsname = '%s_sum' %(casename)
   statstime = pr.get_sum_statstime(sum_funclabels, sum_funclist)
-  pr.plot(statstime, statsname)
+  print('Ready to plot sum functions')
+ #pr.plot(statstime, statsname)
+
+  for sumname in sum_funclist:
+    item = sumname.split('::')
+    name = item[1]
+    statsname = '%s_%s' %(casename, name)
+    statstime = pr.get_sum_components(sumname)
+    pr.plot(statstime, statsname)
+
