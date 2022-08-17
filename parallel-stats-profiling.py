@@ -58,7 +58,8 @@ class Profiler:
       os.makedirs(casename)
 
     self.colorlist = ['red', 'blue', 'green', 'orange', 'royalblue', 'cyan',
-                      'magenta', 'lime', 'yellowgreen']
+                      'magenta', 'lime', 'yellowgreen',
+                      'violet', 'navy', 'teal']
 
    #self.get_top_functions()
 
@@ -449,7 +450,7 @@ if __name__== '__main__':
   output = 0
   linear = 0
 
-  opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'workdir=',
+  opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'workdir=', 'output=',
                              'corelist=', 'nodelist=', 'casename='])
 
   for o, a in opts:
@@ -492,7 +493,7 @@ if __name__== '__main__':
 #                  'oops::LocalEnsembleSolver::computeHofX']
   statsname = '%s_main' %(casename)
   statstime = pr.get_main_statstime(main_funclabels, main_funclist)
- #pr.plot(statstime, statsname)
+  pr.plot(statstime, statsname)
 
   sum_funclabels = ['sum(oops::GetValues)',
                     'sum(oops::ObsError)',
@@ -511,7 +512,7 @@ if __name__== '__main__':
   statsname = '%s_sum' %(casename)
   statstime = pr.get_sum_statstime(sum_funclabels, sum_funclist)
   print('Ready to plot sum functions')
- #pr.plot(statstime, statsname)
+  pr.plot(statstime, statsname)
 
   for sumname in sum_funclist:
     item = sumname.split('::')

@@ -5,20 +5,15 @@
 #workdir=/work2/noaa/gsienkf/weihuang/jedi/case_study/develop_code
  workdir=/work2/noaa/gsienkf/weihuang/jedi/case_study
 #caselist=(amsua iasi aircraft sfcship sondes surf satwind scatwind vadwind windprof)
- caselist=(iasi aircraft sondes scatwind)
+#caselist=(iasi aircraft sondes scatwind)
+ caselist=(scatwind)
 
  for i in ${!caselist[@]}
  do
    rm -rf ${caselist[$i]}
    mkdir -p ${caselist[$i]}
-   python obs_timing.py --casename=${caselist[$i]} --workdir=${workdir} --output=1
-   python main_timing.py --casename=${caselist[$i]} --workdir=${workdir} --output=1
-   python sum_timing.py --casename=${caselist[$i]} --workdir=${workdir} --output=1
+   python parallel-stats-profiling.py --casename=${caselist[$i]} --workdir=${workdir} --output=1
  done
 
- for name in ObsFilter ObsSpace  ObsVector ObsOperator GetValues VariableChange main sum
-#for name in main
- do
-   python make-obs-panel.py --output=1 --name=$name
- done
+ python make-jedi-perf-panel.py --output=1
 
