@@ -4,7 +4,8 @@
 
  output=1
 
- caselist=(sfc-letkf_sfc_ps sfc-letkf_sfcship_ps sfc-letkf_sondes_ps sfc_ps sfcship_ps sondes_ps)
+#caselist=(sfc-letkf_sfc_ps sfc-letkf_sfcship_ps sfc-letkf_sondes_ps sfc_ps sfcship_ps sondes_ps)
+ caselist=(ship_observer ship_gsihofxbc sfc_observer sfc_gsihofxbc)
  namelist=(surface_pressure)
 
 #---------------------------------------------------------------------------

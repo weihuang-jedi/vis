@@ -24,7 +24,7 @@ def cmdout(command):
 """ Profiler """
 class Profiler:
   """ Constructor """
-  def __init__(self, debug=0, tasklist=[], output=0,
+  def __init__(self, debug=0, tasklist=[], output=0, casename='unknown',
                nodelist=[], workdir=None, linear=0):
 
     """ Initialize class attributes """
@@ -34,6 +34,7 @@ class Profiler:
     self.tasklist = tasklist
     self.nodelist = nodelist
     self.linear = linear
+    self.casename = casename
 
     if(workdir is None):
       print('workdir not defined. Exit.')
@@ -101,64 +102,6 @@ class Profiler:
 
       self.pstatslist.append(plist)
      #self.gstatslist.append(glist)
-
-  def print_gen_time(self, nc):
-    print('\nTiming Statistics: Time')
-    nl = len(self.stats_list[0][1])
-
-    hinfo = '+----+'
-    for i in range(nc):
-      hinfo = '%s%s+' %(hinfo, 22*'-')
-    print(hinfo)
-
-    pinfo = '+-NP-+'
-    for i in range(nc):
-      pinfo = '%s%s%4d%s+' %(pinfo, 9*' ', self.caselist[i], 9*' ')
-    print(pinfo)
-
-    print(hinfo)
-
-    n = 0
-    for n in range(nl-10):
-      ni = n + 1
-
-      pinfo = '|%3d |' %(ni)
-      for i in range(nc):
-       #print('self.stats_list[i][1] = ', self.stats_list[i][1])
-        idx = self.stats_list[i][1][n]
-        tim = self.stats_list[i][0][idx]['time']
-        pinfo = '%s %s %10.2f %s |' %(pinfo, 4*' ', tim, 4*' ')
-      print(pinfo)
-    print(hinfo)
-
-  def print_par_time(self, nc):
-    print('\nParallel Timing Statistics: Time')
-    nl = len(self.stats_list[0][3])
-
-    hinfo = '+----+'
-    for i in range(nc):
-      hinfo = '%s%s+' %(hinfo, 22*'-')
-    print(hinfo)
-
-    pinfo = '+-NP-+'
-    for i in range(nc):
-      pinfo = '%s%s%4d%s+' %(pinfo, 9*' ', self.caselist[i], 9*' ')
-    print(pinfo)
-
-    print(hinfo)
-
-    n = 0
-    for n in range(nl-10):
-      ni = n + 1
-
-      pinfo = '|%3d |' %(ni)
-      for i in range(nc):
-       #print('self.stats_list[i][3] = ', self.stats_list[i][3])
-        idx = self.stats_list[i][3][n]
-        tim = self.stats_list[i][2][idx]['avg']
-        pinfo = '%s %s %10.2f %s |' %(pinfo, 4*' ', tim, 4*' ')
-      print(pinfo)
-    print(hinfo)
 
   def stats(self, flnm):
     if(os.path.exists(flnm)):
@@ -309,8 +252,7 @@ class Profiler:
     except Exception:
       pass
 
-    title = 'Timing by Task'
-   #title = 'Timing by Task (separate reinit obs)'
+    title = 'Timing by Task %s code' %(self.casename)
 
     nl = len(self.nodelist)
     x = np.zeros((nl), dtype=float)
@@ -329,21 +271,37 @@ class Profiler:
     pmin = 1.0e20
     pmax = 0.0
 
+    txtname = '%s_timing.csv' %(self.casename)
+    OPF = open(txtname, 'w')
     for n in range(len(self.tasklist)):
+      OPF.write('\nTiming for tasks: %d\n' %(self.tasklist[n]))
+      header = '%20s' %('Function Name')
+      for k in range(nl):
+        header = '%s, %12d' %(header, self.nodelist[k])
+      OPF.write(header+'\n')
+
       for i in range(len(self.fullfunction_list)):
+        txtinfo = '%20s' %(self.function_list[i])
         for k in range(nl):
           y[k] = 0.001*self.pstatslist[n][k][i]/60.0
           if(pmin > y[k]):
             pmin = y[k]
           if(pmax < y[k]):
             pmax = y[k]
+          txtinfo = '%s, %8.2f' %(txtinfo, y[k])
        #print('y = ', y)
         ax[n].plot(x, y, color=self.colorlist[i], linewidth=2, alpha=0.9)
+        OPF.write(txtinfo+'\n')
 
       label = '%d tasks per node' %(self.tasklist[n])
 
      #label physical distance to the left and up:
       ax[n].set_title(label, fontsize=8)
+      ax[n].grid()
+
+    OPF.close()
+
+    plt.grid()
 
    #Adjust pmin, pmax
     pvmin = 1.0
@@ -380,8 +338,6 @@ class Profiler:
     print('pmin: %f, pmax: %f' %(pmin, pmax))
     plt.xlim(x[0], x[-1])
     plt.ylim(pmin, pmax)
-
-    plt.grid()
  
    #general title
    #plt.suptitle(title, fontsize=13, fontweight=0, color='black', style='italic', y=1.02)
@@ -408,11 +364,9 @@ class Profiler:
 #          handlelength=1.5
 
     if(self.linear):
-      imgname = 'lin_panel_by_task.png'
-     #imgname = 'separate_reinit_obs_lin_panel_by_task.png'
+      imgname = '%s_lin_panel_by_task.png' %(self.casename)
     else:
-      imgname = 'log_panel_by_task.png'
-     #imgname = 'separate_reinit_obs_log_panel_by_task.png'
+      imgname = '%s_log_panel_by_task.png' %(self.casename)
 
     if(self.output):
       plt.savefig(imgname)
@@ -427,28 +381,21 @@ class Profiler:
     except Exception:
       pass
 
-    title = 'Timing by Node'
-   #title = 'Timing by Node (separate reinit obs)'
+    title = 'Timing by Node %s code' %(self.casename)
 
     nl = len(self.tasklist)
     x = np.zeros((nl), dtype=float)
     y = np.zeros((nl), dtype=float)
+    xlabels = []
     for k in range(nl):
       x[k] = self.tasklist[k]
+      lbl = '%d' %(self.nodelist[k])
+      xlabels.append(lbl)
 
    #print('x = ', x)
 
     fig, axes = plt.subplots(nrows=3, ncols=2, sharex=True, sharey=True)
     ax = axes.flatten()
-
-    if(self.linear):
-      plt.xscale('linear')
-    else:
-      plt.xscale('linear')
-     #plt.xscale('log', base=2)
-     #plt.yscale('log', base=10)
-      plt.xscale('log', base=2)
-      plt.yscale('log', base=2)
 
     pmin = 1.0e20
     pmax = 0.0
@@ -463,11 +410,39 @@ class Profiler:
             pmax = y[k]
        #print('y = ', y)
         ax[n].plot(x, y, color=self.colorlist[i], linewidth=2, alpha=0.9)
+        ax[n].grid()
 
       label = '%d nodes' %(self.nodelist[n])
 
      #label physical distance to the left and up:
       ax[n].set_title(label, fontsize=8)
+
+    plt.grid()
+
+    pmin = 1.0/128.0
+    pmax = 256.0
+    yp = []
+    ylabels = []
+    pcur = pmin/2.0
+    while(pcur < pmax):
+      pcur *= 4.0
+      lbl = '%6.2f' %(pcur)
+      ylabels.append(lbl)
+      yp.append(pcur)
+     #print('yp = ', yp)
+
+    if(self.linear):
+      plt.xscale('linear')
+    else:
+      plt.xscale('linear')
+     #plt.xscale('log', base=2)
+     #plt.yscale('log', base=10)
+      plt.xscale('log', base=2)
+      plt.yscale('log', base=2)
+
+      plt.xticks(x, xlabels)
+     #plt.xticks(x, xlabels, rotation ='vertical')
+      plt.yticks(yp, ylabels)
 
    #Same limits for everybody!
     print('pmin: %f, pmax: %f' %(pmin, pmax))
@@ -505,11 +480,9 @@ class Profiler:
    #(smaller value results in more space being made for the legend)
 
     if(self.linear):
-      imgname = 'lin_panel_by_node.png'
-     #imgname = 'separate_reinit_obs_lin_panel_by_node.png'
+      imgname = '%s_lin_panel_by_node.png' %(self.casename)
     else:
-      imgname = 'log_panel_by_node.png'
-     #imgname = 'separate_reinit_obs_log_panel_by_node.png'
+      imgname = '%s_log_panel_by_node.png' %(self.casename)
     if(self.output):
       plt.savefig(imgname)
     else:
@@ -519,8 +492,10 @@ class Profiler:
 if __name__== '__main__':
   debug = 1
   output = 0
-  workdir = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver'
- #workdir = '/work2/noaa/gsienkf/weihuang/jedi/run.soca'
+  casename = 'develop'
+  workdir = '/work2/noaa/gsienkf/weihuang/jedi/run.soca'
+ #casename = 'Anna'
+ #workdir = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver'
  #tasklist = [20, 24, 30, 36, 40]
  #tasklist = [20, 30, 36, 40]
  #tasklist = [20, 32, 36, 40]
@@ -529,7 +504,7 @@ if __name__== '__main__':
   linear = 1
 
   opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'workdir=', 'output=',
-                             'tasklist=', 'nodelist='])
+                             'casename=', 'tasklist=', 'nodelist='])
 
   for o, a in opts:
     if o in ('--debug'):
@@ -538,6 +513,8 @@ if __name__== '__main__':
       workdir = a
     elif o in ('--tasklist'):
       tasklist = a
+    elif o in ('--casename'):
+      casename = a
     elif o in ('--linear'):
       linear = int(a)
     elif o in ('--output'):
@@ -545,13 +522,12 @@ if __name__== '__main__':
     else:
       assert False, 'unhandled option'
 
-  pr = Profiler(debug=debug, tasklist=tasklist, nodelist=nodelist,
+  pr = Profiler(debug=debug, tasklist=tasklist, nodelist=nodelist, casename=casename,
                 output=output, workdir=workdir, linear=linear)
+  pr.set_output(output=output)
   pr.process()
   for linear in [0, 1]:
     pr.set_linear(linear=linear)
-    for output in [0, 1]:
-      pr.set_output(output=output)
-      pr.plot_panel_by_task()
-      pr.plot_panel_by_node()
+    pr.plot_panel_by_task()
+    pr.plot_panel_by_node()
 
