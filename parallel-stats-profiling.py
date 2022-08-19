@@ -95,7 +95,7 @@ class Profiler:
     par_stats = self.parstatslist[0]
 
     for name in par_stats.keys():
-      avgt = par_stats[name]['avg']
+      avgt = par_stats[name]['max']
       self.add2selected_functions(name, avgt)
 
     for n in range(self.num_selected_functions):
@@ -251,16 +251,20 @@ class Profiler:
     il = len(self.funclist)
     kl = len(self.nodelist)
     statstime = np.zeros((il, kl))
+    statspercent = np.zeros((il, kl))
     for k in range(kl):
       stats = self.parstatslist[k]
       for i in range(il):
         name = self.funclist[i]
         if(name in stats.keys()):
-          statstime[i][k] = stats[name]['avg']*0.001/60.0
+          statstime[i][k] = stats[name]['max']*0.001/60.0
+
+      for i in range(il):
+        statspercent[i][k] = 100.0*statstime[i][k]/stats['util::Timers::Total']
 
     self.pmin, self.pmax, self.pvmin, self.pvmax = self.get_minmax(statstime)
 
-    return statstime
+    return statstime, statspercent
 
   def get_sum_statstime(self, funclabels, funclist):
     self.funclabels = funclabels
@@ -271,6 +275,7 @@ class Profiler:
     il = len(self.funclist)
     kl = len(self.nodelist)
     statstime = np.zeros((il, kl))
+    statspercent = np.zeros((il, kl))
     for k in range(kl):
       stats = self.parstatslist[k]
       for i in range(il):
@@ -278,12 +283,15 @@ class Profiler:
        #print('Node %d Func %d Name %s' %(k, i, name))
         for key in stats.keys():
           if(key.find(name) == 0):
-            statstime[i][k] += stats[key]['avg']*0.001/60.0
+            statstime[i][k] += stats[key]['max']*0.001/60.0
        #print('statstime[%d][%d] = %f' %(i, k, statstime[i][k]))
+
+      for i in range(il):
+        statspercent[i][k] = 100.0*statstime[i][k]/stats['util::Timers::Total']['max']
 
     self.pmin, self.pmax, self.pvmin, self.pvmax = self.get_minmax(statstime)
 
-    return statstime
+    return statstime, statspercent
 
   def get_sum_components(self, sumname):
     self.funclabels = ['sum']
@@ -306,20 +314,24 @@ class Profiler:
     il = len(self.funclist)
     kl = len(self.nodelist)
     statstime = np.zeros((il, kl))
+    statspercent = np.zeros((il, kl))
     for k in range(kl):
       stats = self.parstatslist[k]
       keys = stats.keys()
       for i in range(1, il):
         name = self.funclist[i]
         if(name in keys):
-          statstime[i][k] += stats[name]['avg']*0.001/60.0
-          statstime[0][k] += stats[name]['avg']*0.001/60.0
+          statstime[i][k] += stats[name]['max']*0.001/60.0
+          statstime[0][k] += stats[name]['max']*0.001/60.0
+
+      for i in range(il):
+        statspercent[i][k] = 100.0*statstime[i][k]/stats['util::Timers::Total']['max']
 
     self.pmin, self.pmax, self.pvmin, self.pvmax = self.get_minmax(statstime)
 
-    return statstime
+    return statstime, statspercent
 
-  def plot(self, statstime, statsname):
+  def plot(self, statstime, statspercent, statsname):
     try:
       plt.close('all')
       plt.clf()
@@ -341,25 +353,34 @@ class Profiler:
     ax = plt.subplot()
 
     txtname = '%s/timing_%s.csv' %(self.casename, statsname)
+    OTF = open(txtname, 'w')
+    txtname = '%s/percent_%s.csv' %(self.casename, statsname)
     OPF = open(txtname, 'w')
     header = '%s Avg Time (Minutes)\n' %(statsname)
+    OTF.write(header)
+    header = '%s Time Percentage (to total time)\n' %(statsname)
     OPF.write(header)
 
-    print('text file: %s' %(txtname))
+   #print('text file: %s' %(txtname))
 
     header = '%-40s' %('Function Name')
     for i in range(nl):
-      header = '%s, %8d' %(header, i)
+      header = '%s, %8d' %(header, self.nodelist[i])
+    OTF.write(header+'\n')
     OPF.write(header+'\n')
 
     for i in range(len(self.funclist)):
       txtinfo = '%-40s' %(self.funclist[i])
+      pctinfo = '%-40s' %(self.funclist[i])
       for k in range(nl):
         y[k] = statstime[i][k]
         txtinfo = '%s, %8.2f' %(txtinfo, y[k])
+        pctinfo = '%s, %8.2f' %(txtinfo, statspercent[i][k])
      #print('y = ', y)
       ax.plot(x, y, color=self.colorlist[i], linewidth=2, alpha=0.9)
-      OPF.write(txtinfo+'\n')
+      OTF.write(txtinfo+'\n')
+      OPF.write(pctinfo+'\n')
+    OTF.close()
     OPF.close()
 
     ylp = []
@@ -493,8 +514,8 @@ if __name__== '__main__':
                    'oops::State::State']
 #                  'oops::LocalEnsembleSolver::computeHofX']
   statsname = '%s_main' %(casename)
-  statstime = pr.get_main_statstime(main_funclabels, main_funclist)
-  pr.plot(statstime, statsname)
+  statstime, statspercent = pr.get_main_statstime(main_funclabels, main_funclist)
+  pr.plot(statstime, statspercent, statsname)
 
   sum_funclabels = ['sum(oops::GetValues)',
                     'sum(oops::ObsError)',
@@ -511,14 +532,14 @@ if __name__== '__main__':
                   'oops::ObsOperator',
                   'oops::VariableChange']
   statsname = '%s_sum' %(casename)
-  statstime = pr.get_sum_statstime(sum_funclabels, sum_funclist)
+  statstime, statspercent = pr.get_sum_statstime(sum_funclabels, sum_funclist)
   print('Ready to plot sum functions')
-  pr.plot(statstime, statsname)
+  pr.plot(statstime, statspercent, statsname)
 
   for sumname in sum_funclist:
     item = sumname.split('::')
     name = item[1]
     statsname = '%s_%s' %(casename, name)
-    statstime = pr.get_sum_components(sumname)
-    pr.plot(statstime, statsname)
+    statstime, statspercent = pr.get_sum_components(sumname)
+    pr.plot(statstime, statspercent, statsname)
 

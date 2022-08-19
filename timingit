@@ -2,11 +2,10 @@
 
  set -x
 
- workdir=/work2/noaa/gsienkf/weihuang/jedi/case_study/develop_code
-#workdir=/work2/noaa/gsienkf/weihuang/jedi/case_study
+#workdir=/work2/noaa/gsienkf/weihuang/jedi/case_study/develop_code
+ workdir=/work2/noaa/gsienkf/weihuang/jedi/case_study
 #caselist=(amsua iasi aircraft sfcship sondes surf satwind scatwind vadwind windprof)
  caselist=(iasi aircraft sondes scatwind)
-#caselist=(scatwind)
 
  for i in ${!caselist[@]}
  do
