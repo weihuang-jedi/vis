@@ -200,83 +200,152 @@ class GeneratePlot():
                                dashes=dashes, fontsize=fontsize)
 
 #------------------------------------------------------------------
+def get_grid_latlon(gridsize):
+  griddir = '/work/noaa/gsienkf/weihuang/UFS-RNR-tools/JEDI.FV3-increments/grid/%s' %(gridsize)
+  lon1d = []
+  lat1d = []
+
+  for ntile in range(1,7,1):
+    gridspecfile = '%s/%s_grid.tile%s.nc' %(griddir, gridsize, ntile)
+    print('reading ',gridspecfile)
+
+    if(not os.path.exists(gridspecfile)):
+      print('filename: %s does not exist, stop' %(gridspecfile))
+      sys.exit(-1)
+
+    ncfl = netCDF4.Dataset(gridspecfile)
+    lons = ncfl.variables['x'][:]
+    lats = ncfl.variables['y'][:]
+
+   #print('lons.ndim=', lons.ndim)
+   #print('lons.shape=', lons.shape)
+   #print('lons.size=', lons.size)
+
+    ny, nx = lons.shape
+    latc = np.zeros(((ny-1),(nx-1)))
+    lonc = np.zeros(((ny-1),(nx-1)))
+    latc[0:ny-1,0:nx-1] = 0.25*(lats[0:ny-1,0:nx-1] + lats[0:ny-1,1:nx] + lats[1:ny,0:nx-1] + lats[1:ny,1:nx])
+    lonc[0:ny-1,0:nx-1] = 0.25*(lons[0:ny-1,0:nx-1] + lons[0:ny-1,1:nx] + lons[1:ny,0:nx-1] + lons[1:ny,1:nx])
+
+   #print('lonc.ndim=', lonc.ndim)
+   #print('lonc.shape=', lonc.shape)
+   #print('lonc.size=', lonc.size)
+
+    lonc1d = np.reshape(lonc, ((nx-1)*(ny-1),))
+    latc1d = np.reshape(latc, ((nx-1)*(ny-1),))
+
+   #print('len(lonc1d) = ', len(lonc1d))
+
+    lon1d.extend(lonc1d)
+    lat1d.extend(latc1d)
+
+   #print('len(lon1d) = ', len(lon1d))
+
+    ncfl.close()
+
+  return lon1d, lat1d
+
+#------------------------------------------------------------------
+def get_fv3_var(datadir, varname, prefix=None, nt=0):
+  var = []
+
+  for ntile in range(1,7,1):
+    if(prefix is None):
+      filename = '%s/fv_core.res.tile%d.nc' %(datadir, ntile)
+    else:
+      filename = '%s/%s.fv_core.res.tile%d.nc' %(datadir, prefix, ntile)
+
+    print('filename: ', filename)
+    if(not os.path.exists(filename)):
+      print('filename: %s does not exist, stop' %(filename))
+      sys.exit(-1)
+
+    ncfl = netCDF4.Dataset(filename)
+    val = ncfl.variables[varname][nt,:,:,:]
+    ncfl.close()
+
+    var.append(val)
+
+  print('len(var) = ', len(var))
+  print('var[0].shape = ', var[0].shape)
+
+  return var
+
+#------------------------------------------------------------------
+def get_var1d_at_level(var, lvl):
+  ntile = 6
+  nlev, nlat, nlon = var[0].shape
+
+  print('len(var) = ', len(var))
+  print('var[0].shape = ', var[0].shape)
+
+  var1d = []
+  for n in range(ntile):
+   #v1d = var[n][lvl,:,:].flatten()
+    v1d = np.reshape(var[n][lvl,:,:], (nlat*nlon,))
+    var1d.extend(v1d)
+
+  print('nlat*nlon = ', nlat*nlon)
+  print('len(var1d) = ', len(var1d))
+
+  arr1d = np.array(var1d)
+
+  return arr1d
+  
+#------------------------------------------------------------------
 if __name__== '__main__':
   debug = 1
   output = 0
+ #casename = 'sondes'
+  casename = 'aircraft'
 
-  gridfile = '../regrid/grids/ocn_2014_01.nc'
-  ncg = netCDF4.Dataset(gridfile, 'r')
-  lon = ncg.variables['geolon'][:,:]
-  lat = ncg.variables['geolat'][:,:]
-  ncg.close()
-
-  opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'output='])
+  opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'output=', 'casename='])
 
   for o, a in opts:
     if o in ('--debug'):
       debug = int(a)
     elif o in ('--output'):
       output = int(a)
+    elif o in ('--casename'):
+      casename = a
     else:
       print('option: ', a)
       assert False, 'unhandled option'
 
   gp = GeneratePlot(debug=debug, output=output)
 
-  lat1d = lat.flatten()
-  lon1d = lon.flatten()
-  lon1d = np.where(lon1d > 0, lon1d, lon1d+360.0)
+  lon1d, lat1d = get_grid_latlon('C48')
   gp.set_grid(lat1d, lon1d)
 
-  dir1 = '/work2/noaa/gsienkf/weihuang/jedi/run.soca/soca_solver.40t2n_80p'
-  dir2 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.40t2n_80p'
+  basedir = '/work2/noaa/gsienkf/weihuang/jedi/case_study'
+  casedir = '/work2/noaa/gsienkf/weihuang/jedi/case_study/develop_code'
+  runcase = 'run_80.40t1n_36p'
+  dir1 = '%s/%s/%s/analysis/increment' %(basedir, casename, runcase)
+  dir2 = '%s/%s/%s/analysis/increment' %(casedir, casename, runcase)
 
-  varname = 'Temp'
- #varname = 'Salt'
+  varname = 'T'
 
-  file1 = '%s/ocn.LETKF.an.2015-12-01T12:00:00Z.nc' %(dir1)
-  if(os.path.exists(file1)):
-    pass
-  else:
-    print('file1: %s does not exist, stop' %(file1))
-   #continue
-    sys.exit(-1)
+  basevar = get_fv3_var(dir1, varname, prefix='20200110.030000', nt=0)
+  casevar = get_fv3_var(dir2, varname, prefix='20200110.030000', nt=0)
 
-  file2 = '%s/ocn.LETKF.an.2015-12-01T12:00:00Z.nc' %(dir2)
-  if(os.path.exists(file2)):
-    pass
-  else:
-    print('file2: %s does not exist, stop' %(file2))
-   #continue
-    sys.exit(-1)
+  ntile = 6
+  nlev, nlat, nlon = basevar[0].shape
 
-  print('file1: ', file1)
-  print('file2: ', file2)
+  print('len(basevar) = ', len(basevar))
+  print('basevar[0].shape = ', basevar[0].shape)
 
-  nc1 = netCDF4.Dataset(file1, 'r')
-  nc2 = netCDF4.Dataset(file2, 'r')
-  temp1 = nc1.variables[varname][0,:,:,:]
-  temp2 = nc2.variables[varname][0,:,:,:]
-  nc1.close()
-  nc2.close()
+  levs = [0, 10, 20, 30, 40, 50, 60]
+  for lvl in levs:
+    basevar1d = get_var1d_at_level(basevar, lvl)
+    casevar1d = get_var1d_at_level(casevar, lvl)
 
-  difftemp = temp2 - temp1
+    val1d = casevar1d - basevar1d
 
-  print('%s diff min: %f, max: %f' %(varname, np.min(difftemp), np.max(difftemp)))
+    print('%s diff at lvl: %d, min: %f, max: %f' %(varname, lvl, np.min(val1d), np.max(val1d)))
 
-  nlay, nlat, nlon = temp1.shape
- #print('temp1.shape: ', temp1.shape)
-
- #case = 'solver-full-letkf'
-  case = 'between-dev-anna'
- #for n in range(nlay):
-  for n in [0, 2]:
-    val = temp2[n,:,:] - temp1[n,:,:]
-    val1d = val.flatten()
-   #print('val.shape: ', val.shape)
-    name = '%s-diff_%s_level_%d.png' %(case, varname, n)
+    name = '%s-diff_%s_level_%d.png' %(casename, varname, lvl)
     gp.set_imagename(name)
-    title = '%s diff %s at level %d' %(case, varname, n)
+    title = '%s diff %s at level %d' %(casename, varname, lvl)
     gp.set_title(title)
     gp.plot(val1d)
 

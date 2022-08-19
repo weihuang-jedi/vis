@@ -24,17 +24,17 @@ def cmdout(command):
 """ Profiler """
 class Profiler:
   """ Constructor """
-  def __init__(self, debug=0, corelist=[], casename=None, output=0,
-               nodelist=[], workdir=None, linear=0):
+  def __init__(self, debug=0, casename=None, output=0,
+               corepernode=40, nodelist=[], workdir=None, linear=0):
 
     """ Initialize class attributes """
     self.debug = debug
     self.workdir = workdir
-    self.corelist = corelist
     self.nodelist = nodelist
     self.casename = casename
     self.output = output
     self.linear = linear
+    self.corepernode = corepernode
 
     self.pvmax = 256.0
     self.pvmin = 0.125
@@ -43,8 +43,8 @@ class Profiler:
       print('workdir not defined. Exit.')
       sys.exit(-1)
 
-    if(len(corelist) < 1):
-      print('corelist not defined. Exit.')
+    if(corepernode < 1):
+      print('corepernode not defined. Exit.')
       sys.exit(-1)
 
     if(len(nodelist) < 1):
@@ -130,10 +130,11 @@ class Profiler:
 
     self.filelist = []
     for n in range(len(self.nodelist)):
-      rundir = '%s/%s/run_80.40t%dn_%dp' %(self.workdir, self.casename,
-                self.nodelist[n], self.corelist[n])
-     #flnm = '%s/stdoutNerr/stdout.00000000' %(rundir)
-      flnm = self.get_filename(rundir)
+      totalcores = self.corepernode*self.nodelist[n]
+      rundir = '%s/soca_solver.%dt%dn_%dp' %(self.workdir, self.corepernode,
+                self.nodelist[n], totalcores)
+      flnm = '%s/log.soca_solver' %(rundir)
+     #flnm = self.get_filename(rundir)
 
       if(os.path.exists(flnm)):
        #if(self.debug):
@@ -443,24 +444,25 @@ class Profiler:
 #--------------------------------------------------------------------------------
 if __name__== '__main__':
   debug = 1
-  casename = 'sondes'
-  workdir = '/work2/noaa/gsienkf/weihuang/jedi/case_study'
-  corelist = [36, 78, 156, 312]
- #corelist = [36, 72, 144, 288]
-  nodelist = [1, 2, 4, 8]
+  casename = 'dev'
+  workdir = '/work2/noaa/gsienkf/weihuang/jedi/run.soca'
+ #casename = 'anna'
+ #workdir = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver'
+  nodelist = [2, 4, 6, 8, 10, 12]
+  corepernode = 36
   output = 0
   linear = 0
 
   opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'workdir=', 'output=',
-                             'corelist=', 'nodelist=', 'casename='])
+                             'corepernode=', 'nodelist=', 'casename='])
 
   for o, a in opts:
     if o in ('--debug'):
       debug = int(a)
     elif o in ('--workdir'):
       workdir = a
-    elif o in ('--corelist'):
-      corelist = a
+    elif o in ('--corepernode'):
+      corepernode = int(a)
     elif o in ('--nodelist'):
       nodelist = a
     elif o in ('--casename'):
@@ -472,26 +474,24 @@ if __name__== '__main__':
     else:
       assert False, 'unhandled option'
 
-  pr = Profiler(debug=debug, corelist=corelist, nodelist=nodelist, output=output,
+  pr = Profiler(debug=debug, corepernode=corepernode, nodelist=nodelist, output=output,
                 workdir=workdir, casename=casename, linear=linear)
   pr.process()
   pr.set_linear(linear=linear)
   pr.set_output(output=output)
 
   main_funclabels = ['total',
-                     'GETKF_computeHofX',
-                     'changeVar',
-                     'measurementUpdate',
-                     'computeWeights',
+                     'computeHofX',
+                     'ObsSpace',
+                     'LocalInterpolator',
+                     'GetValues',
                      'State']
-#                    'Local_computeHofX']
   main_funclist = ['util::Timers::Total',
-                   'oops::GETKFSolver::computeHofX',
-                   'oops::VariableChange::changeVar',
-                   'oops::GETKFSolver::measurementUpdate',
-                   'oops::GETKFSolver::computeWeights',
-                   'oops::State::State']
-#                  'oops::LocalEnsembleSolver::computeHofX']
+                   'oops::LocalEnsembleSolver::computeHofX',
+                   'oops::ObsSpace::ObsSpace',
+                   'oops::LocalInterpolator::apply',
+                   'oops::GetValues::process',
+                   'oops::State::write']
   statsname = '%s_main' %(casename)
   statstime = pr.get_main_statstime(main_funclabels, main_funclist)
   pr.plot(statstime, statsname)

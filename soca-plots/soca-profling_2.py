@@ -494,12 +494,12 @@ if __name__== '__main__':
   output = 0
   casename = 'develop'
   workdir = '/work2/noaa/gsienkf/weihuang/jedi/run.soca'
- #casename = 'Anna'
+ #casename = 'anna'
  #workdir = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver'
  #tasklist = [20, 24, 30, 36, 40]
  #tasklist = [20, 30, 36, 40]
- #tasklist = [20, 32, 36, 40]
-  tasklist = [32, 36, 40]
+  tasklist = [20, 32, 36, 40]
+ #tasklist = [32, 36, 40]
   nodelist = [2, 4, 6, 8, 10, 12]
   linear = 1
 
