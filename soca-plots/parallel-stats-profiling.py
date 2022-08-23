@@ -240,6 +240,8 @@ class Profiler:
     while(pvmax < pmax):
       pvmax *= 2.0
 
+    pvmin = 0.0625
+    pvmax = 32.0
    #pvmin = 0.125
    #pvmax = 256.0
 

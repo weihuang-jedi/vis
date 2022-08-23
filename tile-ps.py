@@ -12,7 +12,6 @@ import types
 import time
 import datetime
 import subprocess
-import netCDF4
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -200,88 +199,141 @@ class GeneratePlot():
                                dashes=dashes, fontsize=fontsize)
 
 #------------------------------------------------------------------
+""" DataTile """
+class DataTile:
+  """ Constructor """
+  def __init__(self, debug=0, workdir=None):
+    """ Initialize class attributes """
+    self.debug = debug
+    self.workdir = workdir
+
+    if(workdir is None):
+      print('workdir not defined. Exit.')
+      sys.exit(-1)
+
+    nc = 0
+    search_more = True
+    self.filelist = []
+    while(search_more):
+      filename = '%s/stdout.%8.8d' %(workdir, nc)
+      if(os.path.exists(filename)):
+       #print('File No %d: %s' %(nc, filename))
+        self.filelist.append(filename)
+        nc += 1
+      else:
+        search_more = False
+
+   #self.filelist.sort()
+    print('filelist: ', self.filelist)
+
+  def process(self):
+    self.lon = []
+    self.lat = []
+    self.ps = []
+    self.orog = []
+
+    nc = 0
+    for flnm in self.filelist:
+      nc += 1
+      if(self.debug):
+        print('Processing case ' + str(nc) + ': ' + flnm)
+      lon, lat, ps, orog = self.get_stats(flnm)
+      print('len(lon) = ', len(lon))
+      print('len(lat) = ', len(lat))
+      print('len(ps) = ', len(ps))
+      print('len(orog) = ', len(orog))
+      self.lon.extend(lon)
+      self.lat.extend(lat)
+      self.ps.extend(ps)
+      self.orog.extend(orog)
+
+    print('len(self.lon) = ', len(self.lon))
+    print('len(self.lat) = ', len(self.lat))
+    print('len(self.ps) = ', len(self.ps))
+    print('len(self.orog) = ', len(self.orog))
+
+  def get_data(self):
+    return np.array(self.lat), np.array(self.lon), np.array(self.ps), np.array(self.orog)
+
+  def get_stats(self, flnm):
+    ps_default = 1013.0
+    orog_default = 0.0
+
+    arc2deg = 180.0/np.pi
+
+    lon = []
+    lat = []
+    ps = []
+    orog = []
+
+    with open(flnm) as fh:
+      lines = fh.readlines()
+      num_lines = len(lines)
+     #print('Total number of lines: ', num_lines)
+
+      nl = 0
+      while(nl < num_lines):
+       #print('Line[%d]: %s' %(nl, lines[nl].strip()))
+        if(lines[nl].find('i,j,lon,lat,ps,orog=') >= 0):
+         #print('Line[%d]: %s' %(nl, lines[nl].strip()))
+          istr = lines[nl]
+          while(istr.find('  ') > 0):
+            istr = istr.replace('  ', ' ')
+          if(istr.find('****') > 0):
+            istr = istr.replace('****', ' NaN')
+          item = istr.split(' ')
+          lonval = arc2deg*float(item[3])
+          latval = arc2deg*float(item[4])
+          if(istr.find('NaN') > 0):
+            psval = ps_default
+            orogval = orog_default
+          else:
+            psval = 0.01*float(item[5])
+            orogval = float(item[6])
+          if(lonval < 0.0):
+            lonval += 360.0
+          lon.append(lonval)
+          lat.append(latval)
+          ps.append(psval)
+          orog.append(orogval)
+        nl += 1
+
+    return lon, lat, ps, orog
+
+#--------------------------------------------------------------------------------
 if __name__== '__main__':
   debug = 1
   output = 0
+  workdir = '/work2/noaa/gsienkf/weihuang/jedi/per_core_timing/run/surf/run_80.40t1n_36p/stdoutNerr'
 
-  gridfile = '../regrid/grids/ocn_2014_01.nc'
-  ncg = netCDF4.Dataset(gridfile, 'r')
-  lon = ncg.variables['geolon'][:,:]
-  lat = ncg.variables['geolat'][:,:]
-  ncg.close()
-
-  opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'output='])
+  opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'output=', 'workdir='])
 
   for o, a in opts:
     if o in ('--debug'):
       debug = int(a)
     elif o in ('--output'):
       output = int(a)
+    elif o in ('--workdir'):
+      workdir = a
     else:
-      print('option: ', a)
       assert False, 'unhandled option'
 
+  dt = DataTile(debug=debug, workdir=workdir)
+  dt.process()
+  lat, lon, ps, orog = dt.get_data()
+
   gp = GeneratePlot(debug=debug, output=output)
+  gp.set_grid(lat, lon)
 
-  lat1d = lat.flatten()
-  lon1d = lon.flatten()
-  lon1d = np.where(lon1d > 0, lon1d, lon1d+360.0)
-  gp.set_grid(lat1d, lon1d)
+  imgname = 'ps.png'
+  gp.set_imagename(imgname)
+  title = 'Surface Pressure (Unit: hPa)'
+  gp.set_title(title)
+  gp.plot(ps)
 
- #dir1 = '/work2/noaa/gsienkf/weihuang/jedi/run.soca/soca_solver.40t2n_80p'
- #dir2 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.40t2n_80p'
-  dir1 = '/work2/noaa/gsienkf/weihuang/jedi/run.soca/soca_solver.36t2n_72p'
- #dir2 = '/work2/noaa/gsienkf/weihuang/jedi/run.soca/solver.36t2n_72p'
-  dir2 = '/work2/noaa/gsienkf/weihuang/jedi/run.soca/solver.36t2n_72p-soca_observer_output'
-
-  varname = 'Temp'
- #varname = 'Salt'
-
-  file1 = '%s/ocn.LETKF.an.2015-12-01T12:00:00Z.nc' %(dir1)
-  if(os.path.exists(file1)):
-    pass
-  else:
-    print('file1: %s does not exist, stop' %(file1))
-   #continue
-    sys.exit(-1)
-
-  file2 = '%s/ocn.LETKF.an.2015-12-01T12:00:00Z.nc' %(dir2)
-  if(os.path.exists(file2)):
-    pass
-  else:
-    print('file2: %s does not exist, stop' %(file2))
-   #continue
-    sys.exit(-1)
-
-  print('file1: ', file1)
-  print('file2: ', file2)
-
-  nc1 = netCDF4.Dataset(file1, 'r')
-  nc2 = netCDF4.Dataset(file2, 'r')
-  temp1 = nc1.variables[varname][0,:,:,:]
-  temp2 = nc2.variables[varname][0,:,:,:]
-  nc1.close()
-  nc2.close()
-
-  difftemp = temp2 - temp1
-
-  print('%s diff min: %f, max: %f' %(varname, np.min(difftemp), np.max(difftemp)))
-
-  nlay, nlat, nlon = temp1.shape
- #print('temp1.shape: ', temp1.shape)
-
-  plotlvls = [0, 2]
- #case = 'solver-full-letkf'
-  case = 'solver-onepass'
-  for n in range(nlay):
-    val = temp2[n,:,:] - temp1[n,:,:]
-    val1d = val.flatten()
-   #print('val.shape: ', val.shape)
-    print('%s diff at level %d min: %f, max: %f' %(varname, n, np.min(val1d), np.max(val1d)))
-    if n in plotlvls:
-      name = '%s-diff_%s_level_%d.png' %(case, varname, n)
-      gp.set_imagename(name)
-      title = '%s diff %s at level %d' %(case, varname, n)
-      gp.set_title(title)
-      gp.plot(val1d)
+  imgname = 'orog.png'
+  gp.set_imagename(imgname)
+  title = 'Orograph (Unit: m)'
+  gp.set_title(title)
+  gp.plot(orog)
 

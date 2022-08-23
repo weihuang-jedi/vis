@@ -200,88 +200,114 @@ class GeneratePlot():
                                dashes=dashes, fontsize=fontsize)
 
 #------------------------------------------------------------------
+""" TileData """
+class TileData:
+  """ Constructor """
+  def __init__(self, debug=0, output=0, griddir=None, gridtype='C48'):
+    """ Initialize class attributes """
+    self.debug = debug
+    self.output = output
+    self.griddir = griddir
+    self.gridtype = gridtype
+
+    if(griddi is None):
+      print('griddir not defined. Exit.')
+      sys.exit(-1)
+
+    self.lon = []
+    self.lat = []
+    for n in range(6):
+      nt = n + 1
+      datafile = '%s/%s/%s_oro_data.tile%d.nc' %(griddir, gridtype, gridtype, nt)
+      if(os.path.exists(datafile)):
+       #print('File No %d: %s' %(nt, datafile))
+        self.datalist.append(datafile)
+
+      ncf = netCDF4.Dataset(datafile)
+      lon = ncf.variables['geolon'][:,:]
+      lat = ncf.variables['geolat'][:,:]
+      
+     #print('lon.ndim=', lon.ndim)
+     #print('lon.shape=', lon.shape)
+     #print('lon.size=', lon.size)
+
+      ny, nx = lon.shape
+
+      lonc1d = np.reshape(lon, (nx*ny,))
+      latc1d = np.reshape(lat, (nx*ny,))
+
+      self.lon.extend(lonc1d)
+      self.lat.extend(latc1d)
+
+      ncf.close()
+
+    print('len(self.lon) = ', len(self.lon))
+    print('len(self.lat) = ', len(self.lat))
+
+  def get_var(self, varname):
+    data = []
+    for datafile in self.datalist:
+      ncf = netCDF4.Dataset(datafile)
+      var = ncf.variables[varname][:,:]
+    
+     #print('lon.ndim=', lon.ndim)
+     #print('lon.shape=', lon.shape)
+     #print('lon.size=', lon.size)
+
+      ny, nx = lon.shape
+
+      lonc1d = np.reshape(lon, (nx*ny,))
+      latc1d = np.reshape(lat, (nx*ny,))
+      var1d = np.reshape(lat, (nx*ny,))
+
+      self.lon.extend(lonc1d)
+      self.lat.extend(latc1d)
+      self.var.extend(var1d)
+      ncf.close()
+
+    print('len(self.lon) = ', len(self.lon))
+    print('len(self.lat) = ', len(self.lat))
+    print('len(self.orog) = ', len(self.orog))
+
+    return np.array(self.lat), np.array(self.lon), np.array(self.orog)
+
+#--------------------------------------------------------------------------------
 if __name__== '__main__':
   debug = 1
   output = 0
+  gridtype = 'C96'
+  griddir = '/work/noaa/gsienkf/weihuang/UFS-RNR-tools/JEDI.FV3-increments/grid'
 
-  gridfile = '../regrid/grids/ocn_2014_01.nc'
-  ncg = netCDF4.Dataset(gridfile, 'r')
-  lon = ncg.variables['geolon'][:,:]
-  lat = ncg.variables['geolat'][:,:]
-  ncg.close()
-
-  opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'output='])
+  opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'output=', 'gridtype=', 'griddir='])
 
   for o, a in opts:
     if o in ('--debug'):
       debug = int(a)
     elif o in ('--output'):
       output = int(a)
+    elif o in ('--griddir'):
+      griddir = a
+    elif o in ('--gridtype'):
+      gridtype = a
     else:
-      print('option: ', a)
       assert False, 'unhandled option'
 
+  pt = TileData(debug=debug, griddir=griddir, gridtype=gridtype)
+  pt.process()
+  lat, lon, orog = dt.get_data()
+
   gp = GeneratePlot(debug=debug, output=output)
+  gp.set_grid(lat, lon)
 
-  lat1d = lat.flatten()
-  lon1d = lon.flatten()
-  lon1d = np.where(lon1d > 0, lon1d, lon1d+360.0)
-  gp.set_grid(lat1d, lon1d)
+  imgname = 'ps.png'
+  gp.set_imagename(imgname)
+  title = 'Surface Pressure (Unit: hPa)'
+  gp.set_title(title)
+  gp.plot(ps)
 
- #dir1 = '/work2/noaa/gsienkf/weihuang/jedi/run.soca/soca_solver.40t2n_80p'
- #dir2 = '/work2/noaa/gsienkf/weihuang/ufs/soca/new-soca-solver/soca_solver.40t2n_80p'
-  dir1 = '/work2/noaa/gsienkf/weihuang/jedi/run.soca/soca_solver.36t2n_72p'
- #dir2 = '/work2/noaa/gsienkf/weihuang/jedi/run.soca/solver.36t2n_72p'
-  dir2 = '/work2/noaa/gsienkf/weihuang/jedi/run.soca/solver.36t2n_72p-soca_observer_output'
-
-  varname = 'Temp'
- #varname = 'Salt'
-
-  file1 = '%s/ocn.LETKF.an.2015-12-01T12:00:00Z.nc' %(dir1)
-  if(os.path.exists(file1)):
-    pass
-  else:
-    print('file1: %s does not exist, stop' %(file1))
-   #continue
-    sys.exit(-1)
-
-  file2 = '%s/ocn.LETKF.an.2015-12-01T12:00:00Z.nc' %(dir2)
-  if(os.path.exists(file2)):
-    pass
-  else:
-    print('file2: %s does not exist, stop' %(file2))
-   #continue
-    sys.exit(-1)
-
-  print('file1: ', file1)
-  print('file2: ', file2)
-
-  nc1 = netCDF4.Dataset(file1, 'r')
-  nc2 = netCDF4.Dataset(file2, 'r')
-  temp1 = nc1.variables[varname][0,:,:,:]
-  temp2 = nc2.variables[varname][0,:,:,:]
-  nc1.close()
-  nc2.close()
-
-  difftemp = temp2 - temp1
-
-  print('%s diff min: %f, max: %f' %(varname, np.min(difftemp), np.max(difftemp)))
-
-  nlay, nlat, nlon = temp1.shape
- #print('temp1.shape: ', temp1.shape)
-
-  plotlvls = [0, 2]
- #case = 'solver-full-letkf'
-  case = 'solver-onepass'
-  for n in range(nlay):
-    val = temp2[n,:,:] - temp1[n,:,:]
-    val1d = val.flatten()
-   #print('val.shape: ', val.shape)
-    print('%s diff at level %d min: %f, max: %f' %(varname, n, np.min(val1d), np.max(val1d)))
-    if n in plotlvls:
-      name = '%s-diff_%s_level_%d.png' %(case, varname, n)
-      gp.set_imagename(name)
-      title = '%s diff %s at level %d' %(case, varname, n)
-      gp.set_title(title)
-      gp.plot(val1d)
+  imgname = 'orog.png'
+  gp.set_imagename(imgname)
+  title = 'Orograph (Unit: m)'
+  gp.set_title(title)
+  gp.plot(orog)
 

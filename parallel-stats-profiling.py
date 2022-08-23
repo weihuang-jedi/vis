@@ -240,7 +240,8 @@ class Profiler:
       pvmax *= 2.0
 
    #pvmin = 0.125
-   #pvmax = 256.0
+    pvmin = 0.25
+    pvmax = 256.0
 
     return pmin, pmax, pvmin, pvmax
 
@@ -259,8 +260,9 @@ class Profiler:
         if(name in stats.keys()):
           statstime[i][k] = stats[name]['max']*0.001/60.0
 
+      totalmax = stats['util::Timers::Total']['max']*0.001/60.0
       for i in range(il):
-        statspercent[i][k] = 100.0*statstime[i][k]/stats['util::Timers::Total']
+        statspercent[i][k] = 100.0*statstime[i][k]/totalmax
 
     self.pmin, self.pmax, self.pvmin, self.pvmax = self.get_minmax(statstime)
 
@@ -286,8 +288,9 @@ class Profiler:
             statstime[i][k] += stats[key]['max']*0.001/60.0
        #print('statstime[%d][%d] = %f' %(i, k, statstime[i][k]))
 
+      totalmax = stats['util::Timers::Total']['max']*0.001/60.0
       for i in range(il):
-        statspercent[i][k] = 100.0*statstime[i][k]/stats['util::Timers::Total']['max']
+        statspercent[i][k] = 100.0*statstime[i][k]/totalmax
 
     self.pmin, self.pmax, self.pvmin, self.pvmax = self.get_minmax(statstime)
 
@@ -324,8 +327,9 @@ class Profiler:
           statstime[i][k] += stats[name]['max']*0.001/60.0
           statstime[0][k] += stats[name]['max']*0.001/60.0
 
+      totalmax = stats['util::Timers::Total']['max']*0.001/60.0
       for i in range(il):
-        statspercent[i][k] = 100.0*statstime[i][k]/stats['util::Timers::Total']['max']
+        statspercent[i][k] = 100.0*statstime[i][k]/totalmax
 
     self.pmin, self.pmax, self.pvmin, self.pvmax = self.get_minmax(statstime)
 
@@ -375,7 +379,7 @@ class Profiler:
       for k in range(nl):
         y[k] = statstime[i][k]
         txtinfo = '%s, %8.2f' %(txtinfo, y[k])
-        pctinfo = '%s, %8.2f' %(txtinfo, statspercent[i][k])
+        pctinfo = '%s, %8.2f' %(pctinfo, statspercent[i][k])
      #print('y = ', y)
       ax.plot(x, y, color=self.colorlist[i], linewidth=2, alpha=0.9)
       OTF.write(txtinfo+'\n')
