@@ -21,7 +21,8 @@ class ReadIODA2Obs():
     self.nstring = 0
     self.nvars = 0
 
-    self.set_vardims()
+    if(filename != None):
+      self.set_vardims()
 
   def set_filename(self, filename=None):
     self.filename = filename
@@ -157,6 +158,17 @@ class ReadIODA2Obs():
   def get_latlon(self):
     lat = self.get_var('/MetaData/latitude')
     lon = self.get_var('/MetaData/longitude')
+
+    return lat, lon
+
+  def get_latlon_from_file(self, filename):
+    ncfile = netCDF4.Dataset(filename, 'r')
+    ncgroup = ncfile['MetaData']
+    lat = ncgroup.variables['latitude'][:]
+    lon = ncgroup.variables['longitude'][:]
+    ncfile.close()
+
+    lon = np.where(lon > 0, lon, lon+360.0)
 
     return lat, lon
 

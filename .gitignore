@@ -5,3 +5,4 @@ regrid/
 *.txt
 *.csv
 timingit
+log.*

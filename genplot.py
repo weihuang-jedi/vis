@@ -586,6 +586,78 @@ class GeneratePlot():
                                color=color, linewidth=linewidth,
                                dashes=dashes, fontsize=fontsize)
 
+  def plot_with_obs(self, pvar, obslist):
+    self.basemap = self.build_basemap()
+
+    self.plt = matplotlib.pyplot
+    try:
+      self.plt.close('all')
+      self.plt.clf()
+    except Exception:
+      pass
+
+    self.fig = self.plt.figure()
+    self.ax = self.plt.subplot()
+
+    msg = ('plot variable min: %s, max: %s' % (np.min(pvar), np.max(pvar)))
+    print(msg)
+    print('pvar.shape = ', pvar.shape)
+    print('pvar.size = ', pvar.size)
+
+    (self.x, self.y) = self.basemap(self.lon1d, self.lat1d)
+    v1d = np.reshape(pvar, (pvar.size, ))
+
+    contfill = self.basemap.contourf(self.x, self.y, v1d, tri=True,
+                                     levels=self.clevs, extend=self.extend,
+                                     alpha=self.alpha, cmap=self.cmapname)
+
+    cb = self.fig.colorbar(contfill, orientation=self.orientation,
+                           pad=self.pad, ticks=self.cblevs)
+
+    cb.set_label(label=self.label, size=self.size, weight=self.weight)
+
+    cb.ax.tick_params(labelsize=self.labelsize)
+    if(self.precision == 0):
+      cb.ax.set_xticklabels(['{:.0f}'.format(x) for x in self.cblevs], minor=False)
+    elif(self.precision == 1):
+      cb.ax.set_xticklabels(['{:.1f}'.format(x) for x in self.cblevs], minor=False)
+    elif(self.precision == 2):
+      cb.ax.set_xticklabels(['{:.2f}'.format(x) for x in self.cblevs], minor=False)
+    else:
+      cb.ax.set_xticklabels(['{:.3f}'.format(x) for x in self.cblevs], minor=False)
+
+    self.ax.set_title(self.title)
+
+    self.plot_coast_lat_lon_line()
+
+    self.obscolorlist = ['greenyellow', 'lawngreen', 'darkseagreen', 'palegreen',
+                         'forestgreen', 'limegreen', 'darkgreen', 'green',
+                         'lime', 'seagreen', 'springgreen', 'mediumseagreen',
+                         'lightgreen', 'turquoise', 'darkcyan', 'yellowgreen',
+                         'aquamarine', 'teal', 'cyan', 'aqua', 'deepskyblue']
+   #https://matplotlib.org/stable/api/markers_api.html
+    self.obsmarklist = ['o', 'v', '^', '<', '>', '1', '2', '3', '4',
+                        '8', 's', 'p', 'P', '*', 'h', 'H', '+', 'x', 'X',
+                        'D', 'd', '|', '-']
+
+    nm = 0
+    markersize=1
+    for obs in obslist:
+      obslon = obs[0]
+      obslat = obs[1]
+      self.add_obs_marker_at_latlon(obs[0], obs[1], marker=self.obsmarklist[nm],
+                                    size=markersize, color=self.obscolorlist[nm])
+      nm += 1
+
+    self.display(output=self.output, image_name=self.image_name)
+
+  def add_obs_marker_at_latlon(self, obslon, obslat, marker='x', size=3, color='green'):
+    if(len(obslon) > 0):
+      x, y = self.basemap(obslon, obslat)
+     #adding dotes:
+     #dotes = self.basemap.plot(x, y, 'bo', markersize=12)
+     #dotes = self.basemap.plot(x, y, 'bo', markersize=6)
+      dotes = self.basemap.scatter(x, y, marker=marker, s=size, color=color)
 # ----
 if __name__ == '__main__':
   debug = 1

@@ -12,7 +12,6 @@ import types
 import time
 import datetime
 import subprocess
-import netCDF4
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -200,100 +199,121 @@ class GeneratePlot():
                                dashes=dashes, fontsize=fontsize)
 
 #------------------------------------------------------------------
-""" TileData """
-class TileData:
+""" DataTile """
+class DataTile:
   """ Constructor """
-  def __init__(self, debug=0, output=0, griddir=None, gridtype='C48'):
+  def __init__(self, debug=0, workdir=None):
     """ Initialize class attributes """
     self.debug = debug
-    self.output = output
-    self.griddir = griddir
-    self.gridtype = gridtype
+    self.workdir = workdir
 
-    if(griddir is None):
-      print('griddir not defined. Exit.')
+    if(workdir is None):
+      print('workdir not defined. Exit.')
       sys.exit(-1)
 
-    self.datalist = []
+    nc = 0
+    search_more = True
+    self.filelist = []
+    while(search_more):
+      filename = '%s/stdout.%8.8d' %(workdir, nc)
+      if(os.path.exists(filename)):
+       #print('File No %d: %s' %(nc, filename))
+        self.filelist.append(filename)
+        nc += 1
+      else:
+        search_more = False
+
+   #self.filelist.sort()
+    print('filelist: ', self.filelist)
+
+  def process(self):
     self.lon = []
     self.lat = []
-    for n in range(6):
-      nt = n + 1
-      datafile = '%s/%s/%s_oro_data.tile%d.nc' %(griddir, gridtype, gridtype, nt)
-      if(os.path.exists(datafile)):
-        print('File No %d: %s' %(nt, datafile))
-        self.datalist.append(datafile)
+    self.dist = []
 
-      ncf = netCDF4.Dataset(datafile)
-      lon = ncf.variables['geolon'][:,:]
-      lat = ncf.variables['geolat'][:,:]
-      
-      print('lon.ndim=', lon.ndim)
-      print('lon.shape=', lon.shape)
-      print('lon.size=', lon.size)
-
-      ny, nx = lon.shape
-
-      lonc1d = np.reshape(lon, (nx*ny,))
-      latc1d = np.reshape(lat, (nx*ny,))
-
-      self.lon.extend(lonc1d)
-      self.lat.extend(latc1d)
-
-      ncf.close()
+    nc = 0
+    for flnm in self.filelist:
+      nc += 1
+      if(self.debug):
+        print('Processing case ' + str(nc) + ': ' + flnm)
+      lon, lat, dist = self.get_stats(flnm)
+      print('len(lon) = ', len(lon))
+      print('len(lat) = ', len(lat))
+      print('len(dist) = ', len(dist))
+      self.lon.extend(lon)
+      self.lat.extend(lat)
+      self.dist.extend(dist)
 
     print('len(self.lon) = ', len(self.lon))
     print('len(self.lat) = ', len(self.lat))
+    print('len(self.dist) = ', len(self.dist))
 
-  def get_latlon(self):
-    return np.array(self.lat), np.array(self.lon)
+  def get_data(self):
+    return np.array(self.lat), np.array(self.lon), np.array(self.dist)
 
-  def get_var(self, varname):
-    data = []
-    for datafile in self.datalist:
-      ncf = netCDF4.Dataset(datafile)
-      var = ncf.variables[varname][:,:]
-    
-      ny, nx = var.shape
-      var1d = np.reshape(var, (nx*ny,))
-      data.extend(var1d)
-      ncf.close()
+  def get_stats(self, flnm):
+    lon = []
+    lat = []
+    dist = []
 
-    print('len(data) = ', len(data))
+    with open(flnm) as fh:
+      lines = fh.readlines()
+      num_lines = len(lines)
+     #print('Total number of lines: ', num_lines)
 
-    return np.array(data)
+      nl = 0
+      while(nl < num_lines):
+       #print('Line[%d]: %s' %(nl, lines[nl].strip()))
+        if(lines[nl].find('Point: ') >= 0):
+         #print('Line[%d]: %s' %(nl, lines[nl].strip()))
+          istr = lines[nl]
+          istr = istr.replace(' {', ' ')
+          istr = istr.replace('} = ', ' ')
+          istr = istr.replace('} ', ' ')
+          istr = istr.replace(',', ' ')
+          item = istr.split(' ')
+         #for n in range(len(item)):
+         #  print('item[%d]: %s' %(n, item[n]))
+          lonval = float(item[2])
+          latval = float(item[3])
+          distval = float(item[9])
+          lon.append(lonval)
+          lat.append(latval)
+          dist.append(distval)
+         #break
+        nl += 1
+
+    return lon, lat, dist
 
 #--------------------------------------------------------------------------------
 if __name__== '__main__':
   debug = 1
   output = 0
-  gridtype = 'C96'
-  griddir = '/work/noaa/gsienkf/weihuang/UFS-RNR-tools/JEDI.FV3-increments/grid'
+ #workdir = '/work2/noaa/gsienkf/weihuang/jedi/per_core_timing/run/surf/run_80.40t1n_36p/stdoutNerr'
+  workdir = '/work2/noaa/gsienkf/weihuang/jedi/run/run_80.40t8n_312p/stdoutNerr'
 
-  opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'output=', 'gridtype=', 'griddir='])
+  opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'output=', 'workdir='])
 
   for o, a in opts:
     if o in ('--debug'):
       debug = int(a)
     elif o in ('--output'):
       output = int(a)
-    elif o in ('--griddir'):
-      griddir = a
-    elif o in ('--gridtype'):
-      gridtype = a
+    elif o in ('--workdir'):
+      workdir = a
     else:
       assert False, 'unhandled option'
 
-  td = TileData(debug=debug, griddir=griddir, gridtype=gridtype)
-  lat, lon = td.get_latlon()
-  orog = td.get_var('orog_filt')
+  dt = DataTile(debug=debug, workdir=workdir)
+  dt.process()
+  lat, lon, dist = dt.get_data()
 
   gp = GeneratePlot(debug=debug, output=output)
   gp.set_grid(lat, lon)
 
-  imgname = 'direct_tile_orog.png'
+  imgname = 'dist.png'
   gp.set_imagename(imgname)
   title = 'Orograph (Unit: m)'
   gp.set_title(title)
-  gp.plot(orog)
+  gp.plot(dist)
 
