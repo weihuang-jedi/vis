@@ -211,18 +211,30 @@ class TimingTile:
       print('workdir not defined. Exit.')
       sys.exit(-1)
 
-    nc = 0
-    self.filelist = []
-    for root, dirs, files in os.walk(workdir):
-      for filename in files:
-        if(filename.find('stderr') >= 0):
-          continue
-       #print('File No %d: %s' %(nc, filename))
-        self.filelist.append(filename)
-        nc += 1
+   #nc = 0
+   #self.filelist = []
+   #for root, dirs, files in os.walk(workdir):
+   #  for filename in files:
+   #    if(filename.find('stderr') >= 0):
+   #      continue
+   #   #print('File No %d: %s' %(nc, filename))
+   #    self.filelist.append(filename)
+   #    nc += 1
 
-    self.filelist.sort()
+   #self.filelist.sort()
    #print('filelist: ', self.filelist)
+
+    search_more = True
+    self.filelist = []
+    nc = 0
+    while(search_more):
+      flnm = '%s/stdout.%8.8d' %(workdir, nc)
+      nc += 1
+      if(os.path.exists(flnm)):
+        print('File No %d: %s' %(nc, flnm))
+        self.filelist.append(flnm)
+      else:
+        search_more = False
 
   def process(self):
     self.lon = []
@@ -272,18 +284,11 @@ class TimingTile:
     return val
       
   def get_stats(self, flnm):
-    fullpath = '%s/%s' %(self.workdir, flnm)
-    if(os.path.exists(fullpath)):
-      pass
-    else:
-      print('Filename ' + fullpath + ' does not exit. Stop')
-      sys.exit(-1)
-
     lon = []
     lat = []
     time = []
 
-    with open(fullpath) as fh:
+    with open(flnm) as fh:
       lines = fh.readlines()
       num_lines = len(lines)
      #print('Total number of lines: ', num_lines)
@@ -333,27 +338,34 @@ class TimingTile:
 
     while(going):
       line = lines[ns].strip()
-     #print('Line ' + str(ns) + ': ' + line)
       ns += 1
       if(line.find('Timing Statistics') > 0):
         going = 0
         break
-      if(lines[nl].find('OOPS_STATS ') >= 0):
+      if(line.find('OOPS_STATS') >= 0):
         continue
 
+     #print('Line ' + str(ns) + ': ' + line)
       item = line.split(': ')
-     #print(item)
+     #print('item=', item)
       name = item[0].strip()
 
       tstr = item[1].strip()
       while(tstr.find('  ') > 0):
         tstr = tstr.replace('  ', ' ')
       nlist = tstr.split(' ')
-      ft = float(nlist[0])
+     #print('nlist=', nlist)
+
       tinfo = {}
       tinfo['name'] = name
-      tinfo['time'] = float(nlist[0])
-      tinfo['call'] = int(nlist[1])
+      if(len(nlist) < 3):
+        tinfo['time'] = float(nlist[0][0:-8])
+        tinfo['call'] = int(nlist[0][-8:])
+       #print('tinfo=', tinfo)
+       #sys.exit(-1)
+      else:
+        tinfo['time'] = float(nlist[0])
+        tinfo['call'] = int(nlist[1])
 
       stats[idx] = tinfo
 
@@ -385,7 +397,8 @@ if __name__== '__main__':
   output = 0
  #workdir = '/work2/noaa/gsienkf/weihuang/jedi/case_study/sondes/run_80.40t1n_36p/stdoutNerr'
  #workdir = '/work2/noaa/gsienkf/weihuang/jedi/case_study/sondes/run_80.40t8n_312p/stdoutNerr'
-  workdir = '/work2/noaa/gsienkf/weihuang/jedi/case_study/sondes/run_80.40t2n_78p/stdoutNerr'
+ #workdir = '/work2/noaa/gsienkf/weihuang/jedi/case_study/sondes/run_80.40t2n_78p/stdoutNerr'
+  workdir = '/work2/noaa/gsienkf/weihuang/jedi/run/run_80.40t1n_36p/stdoutNerr'
 
   opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'output=', 'workdir='])
 
