@@ -67,8 +67,8 @@ class GeneratePlot():
     self.weight = 'bold'
     self.labelsize = 'medium'
 
-    self.label = 'Time (sec)'
-    self.title = 'Time (sec)'
+    self.label = 'Distance (m)'
+    self.title = 'Distance (m)'
 
   def set_clevs(self, clevs=[]):
     self.clevs = clevs
@@ -237,9 +237,9 @@ class DataTile:
       if(self.debug):
         print('Processing case ' + str(nc) + ': ' + flnm)
       lon, lat, dist = self.get_stats(flnm)
-      print('len(lon) = ', len(lon))
-      print('len(lat) = ', len(lat))
-      print('len(dist) = ', len(dist))
+     #print('len(lon) = ', len(lon))
+     #print('len(lat) = ', len(lat))
+     #print('len(dist) = ', len(dist))
       self.lon.extend(lon)
       self.lat.extend(lat)
       self.dist.extend(dist)
@@ -313,7 +313,7 @@ if __name__== '__main__':
 
   imgname = 'dist.png'
   gp.set_imagename(imgname)
-  title = 'Orograph (Unit: m)'
+  title = 'Distance to Patch Center (Unit: m)'
   gp.set_title(title)
   gp.plot(dist)
 
