@@ -264,21 +264,20 @@ class DataTile:
       nl = 0
       while(nl < num_lines):
        #print('Line[%d]: %s' %(nl, lines[nl].strip()))
-        if(lines[nl].find('Point: ') >= 0):
+        if(lines[nl].find('Longitude: ') >= 0):
          #print('Line[%d]: %s' %(nl, lines[nl].strip()))
           istr = lines[nl]
-          istr = istr.replace(' {', ' ')
-          istr = istr.replace('} = ', ' ')
-          istr = istr.replace('} ', ' ')
-          istr = istr.replace(',', ' ')
-          item = istr.split(' ')
+         #istr = istr.replace(',', ' ')
+          item = istr.split(': ')
          #for n in range(len(item)):
          #  print('item[%d]: %s' %(n, item[n]))
-          lonval = float(item[2])
-          latval = float(item[3])
-          distval = float(item[9])
+          lonstr = item[1].split(', ')
+          lonval = float(lonstr[0])
           lon.append(lonval)
+          latstr = item[2].split(', ')
+          latval = float(latstr[0])
           lat.append(latval)
+          distval = float(item[3])
           dist.append(distval)
          #break
         nl += 1
@@ -290,7 +289,8 @@ if __name__== '__main__':
   debug = 1
   output = 0
  #workdir = '/work2/noaa/gsienkf/weihuang/jedi/per_core_timing/run/surf/run_80.40t1n_36p/stdoutNerr'
-  workdir = '/work2/noaa/gsienkf/weihuang/jedi/run/run_80.40t8n_312p/stdoutNerr'
+ #workdir = '/work2/noaa/gsienkf/weihuang/jedi/run/run_80.40t8n_312p/stdoutNerr'
+  workdir = '/scratch2/BMC/gsienkf/Wei.Huang/jedi/dev/build/intel/fv3-jedi/test/stdoutNerr'
 
   opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'output=', 'workdir='])
 
