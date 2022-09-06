@@ -288,11 +288,13 @@ class DataTile:
 if __name__== '__main__':
   debug = 1
   output = 0
+  iamgename = 'dist.png'
  #workdir = '/work2/noaa/gsienkf/weihuang/jedi/per_core_timing/run/surf/run_80.40t1n_36p/stdoutNerr'
  #workdir = '/work2/noaa/gsienkf/weihuang/jedi/run/run_80.40t8n_312p/stdoutNerr'
-  workdir = '/scratch2/BMC/gsienkf/Wei.Huang/jedi/dev/build/intel/fv3-jedi/test/stdoutNerr'
+ #workdir = '/scratch2/BMC/gsienkf/Wei.Huang/jedi/dev/build/intel/fv3-jedi/test/stdoutNerr'
+  workdir = '/work2/noaa/gsienkf/weihuang/jedi/case_study/sondes/run_80.40t1n_36p/stdoutNerr'
 
-  opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'output=', 'workdir='])
+  opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'output=', 'workdir=', 'imagename='])
 
   for o, a in opts:
     if o in ('--debug'):
@@ -301,6 +303,8 @@ if __name__== '__main__':
       output = int(a)
     elif o in ('--workdir'):
       workdir = a
+    elif o in ('--imagename'):
+      imagename = a
     else:
       assert False, 'unhandled option'
 
@@ -311,8 +315,7 @@ if __name__== '__main__':
   gp = GeneratePlot(debug=debug, output=output)
   gp.set_grid(lat, lon)
 
-  imgname = 'dist.png'
-  gp.set_imagename(imgname)
+  gp.set_imagename(imagename)
   title = 'Distance to Patch Center (Unit: m)'
   gp.set_title(title)
   gp.plot(dist)

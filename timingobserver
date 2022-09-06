@@ -7,14 +7,18 @@
 #caselist=(amsua iasi aircraft sfcship sondes surf satwind scatwind vadwind windprof)
 #caselist=(iasi aircraft sondes scatwind)
  workdir=/work2/noaa/gsienkf/weihuang/jedi/per_core_timing/run
- caselist=(halo_aircraft)
+#caselist=(halo_aircraft)
 #caselist=(anna_roundRobin_aircraft)
+ caselist=(anna_halo_aircraft anna_roundRobin_aircraft halo_aircraft roundRobin_aircraft)
 
  for i in ${!caselist[@]}
  do
    rm -rf ${caselist[$i]}
    mkdir -p ${caselist[$i]}
-   python parallel-stats-profiling.py --casename=${caselist[$i]} --workdir=${workdir} --output=1
+   python parallel-observer-stats-profiling.py \
+	--casename=${caselist[$i]} \
+	--workdir=${workdir} \
+	--output=1
  done
 
 #python make-jedi-perf-panel.py --output=1
