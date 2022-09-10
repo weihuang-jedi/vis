@@ -9,7 +9,10 @@
  workdir=/work2/noaa/gsienkf/weihuang/jedi/per_core_timing/run
 #caselist=(halo_aircraft)
 #caselist=(anna_roundRobin_aircraft)
- caselist=(anna_halo_aircraft anna_roundRobin_aircraft halo_aircraft roundRobin_aircraft)
+#caselist=(anna_halo_aircraft anna_roundRobin_aircraft halo_aircraft roundRobin_aircraft)
+#caselist=(anna_halo_aircraft_2 anna_roundRobin_aircraft_2)
+#caselist=(solver_halo_aircraft)
+ caselist=(solver_RoundRobin_aircraft)
 
  for i in ${!caselist[@]}
  do

@@ -155,18 +155,19 @@ class Profiler:
       print('Filename ' + flnm + ' does not exit. Stop')
       sys.exit(-1)
 
+    print('flnm:', flnm)
     par_stats = {}
     with open(flnm) as fp:
       lines = fp.readlines()
      #line = fp.readline()
       num_lines = len(lines)
-     #print('Total number of lines: ', num_lines)
+      print('Total number of lines: ', num_lines)
 
       nl = 0
       while(nl < num_lines):
         if(lines[nl].find('Parallel Timing Statistics') > 0):
-         #if(self.debug):
-         #  print('Start Parallel Timing Statistics')
+          if(self.debug):
+            print('Start Parallel Timing Statistics')
           nl, par_stats = self.parallel_time_stats(lines, nl)
           nl += num_lines
         nl += 1
@@ -190,9 +191,9 @@ class Profiler:
      #print('Line ' + str(ns) + ': ' + line)
 
       item = line.split(': ')
-     #print(item)
+     #print('item=', item)
       namestr = item[0].strip()
-     #print(namestr)
+     #print('namestr:', namestr)
       if(namestr.find('OOPS_STATS ') >= 0):
         name = namestr[headleng:]
       else:
@@ -202,6 +203,7 @@ class Profiler:
       while(tstr.find('  ') > 0):
         tstr = tstr.replace('  ', ' ')
       tlist = tstr.split(' ')
+     #print('tlist:', tlist)
 
       tinfo = {}
       tinfo['min'] = float(tlist[0])
@@ -210,7 +212,7 @@ class Profiler:
      #tinfo['percent'] = float(tlist[3])
      #tinfo['imbalance'] = float(tlist[4])
 
-     #print('name: %s, avg: %f' %(name, tinfo['avg']))
+      print('name: %s, max: %f' %(name, tinfo['max']))
 
       stats[name] = tinfo
 
@@ -255,12 +257,18 @@ class Profiler:
     statspercent = np.zeros((il, kl))
     for k in range(kl):
       stats = self.parstatslist[k]
+      print('stats.keys():', stats.keys())
       for i in range(il):
         name = self.funclist[i]
         if(name in stats.keys()):
           statstime[i][k] = stats[name]['max']*0.001/60.0
+          print('k: %d, i: %d, %s: %f' %(k, i, name, statstime[i][k]))
 
-      totalmax = stats['util::Timers::Total']['max']*0.001/60.0
+      if('util::Timers::Total' in stats.keys()):
+        totalmax = stats['util::Timers::Total']['max']*0.001/60.0
+      else:
+        totalmax = 1000.0
+
       for i in range(il):
         statspercent[i][k] = 100.0*statstime[i][k]/totalmax
 
