@@ -132,8 +132,8 @@ class Profiler:
     for n in range(len(self.nodelist)):
       rundir = '%s/%s/run_80.40t%dn_%dp' %(self.workdir, self.casename,
                 self.nodelist[n], self.corelist[n])
-     #flnm = '%s/stdoutNerr/stdout.00000000' %(rundir)
-      flnm = self.get_filename(rundir)
+      flnm = '%s/stdoutNerr/stdout.00000000' %(rundir)
+     #flnm = self.get_filename(rundir)
 
       if(os.path.exists(flnm)):
        #if(self.debug):
@@ -481,10 +481,10 @@ class Profiler:
 #--------------------------------------------------------------------------------
 if __name__== '__main__':
   debug = 1
-  casename = 'sondes'
-  workdir = '/work2/noaa/gsienkf/weihuang/jedi/case_study'
-  corelist = [36, 78, 156, 312]
- #corelist = [36, 72, 144, 288]
+  casename = 'halo_maxpoolsize_1'
+  workdir = '/work2/noaa/gsienkf/weihuang/jedi/run'
+ #corelist = [36, 78, 156, 312]
+  corelist = [36, 72, 144, 288]
   nodelist = [1, 2, 4, 8]
   output = 0
   linear = 0
