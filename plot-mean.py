@@ -24,11 +24,11 @@ class GeneratePlot():
 
     self.set_default()
 
-  def plot(self, lons, lats, data=[]):
+  def plot(self, lons, lats, data):
    #ax.coastlines(resolution='110m')
    #ax.gridlines()
 
-    nrows = len(data)
+    nrows = 1
     ncols = 1
 
    #set up the plot
@@ -37,30 +37,19 @@ class GeneratePlot():
     fig, axs = plt.subplots(nrows=nrows,ncols=ncols,
                             subplot_kw=dict(projection=proj),
                             figsize=(11,8.5))
- 
-   #axs is a 2 dimensional array of `GeoAxes`. Flatten it into a 1-D array
-    axs=axs.flatten()
+    axs.set_global()
+    pvar = data
 
-    for i in range(len(axs)):
-      axs[i].set_global()
+    cyclic_data, cyclic_lons = add_cyclic_point(pvar, coord=lons)
 
-      pvar = data[i]
+    cs=axs.contourf(cyclic_lons, lats, cyclic_data, transform=proj,
+                    levels=self.clevs, extend=self.extend,
+                    alpha=self.alpha, cmap=self.cmapname)
 
-     #print('Plot No. ', i)
-     #print('\tpvar.shape = ', pvar.shape)
-
-      cyclic_data, cyclic_lons = add_cyclic_point(pvar, coord=lons)
-
-      cs=axs[i].contourf(cyclic_lons, lats, cyclic_data, transform=proj,
-                         levels=self.clevs, extend=self.extend,
-                         alpha=self.alpha, cmap=self.cmapname)
-     #               cmap=self.cmapname, extend='both')
-
-      axs[i].set_extent([-180, 180, -90, 90], crs=proj)
-      axs[i].coastlines(resolution='auto', color='k')
-      axs[i].gridlines(color='lightgrey', linestyle='-', draw_labels=True)
-
-      axs[i].set_title(self.runname[i])
+    axs.set_extent([-180, 180, -90, 90], crs=proj)
+    axs.coastlines(resolution='auto', color='k')
+    axs.gridlines(color='lightgrey', linestyle='-', draw_labels=True)
+    axs.set_title(self.runname[0])
 
    #Adjust the location of the subplots on the page to make room for the colorbar
     fig.subplots_adjust(bottom=0.1, top=0.9, left=0.05, right=0.8,
@@ -97,9 +86,9 @@ class GeneratePlot():
     self.runname = ['Halo', 'RR', 'RR - Halo']
 
    #cmapname = coolwarm, bwr, rainbow, jet, seismic
-    self.cmapname = 'bwr'
+   #self.cmapname = 'bwr'
    #self.cmapname = 'coolwarm'
-   #self.cmapname = 'rainbow'
+    self.cmapname = 'rainbow'
    #self.cmapname = 'jet'
 
     self.clevs = np.arange(-0.2, 0.21, 0.01)
@@ -134,91 +123,78 @@ class GeneratePlot():
   def set_cmapname(self, cmapname):
     self.cmapname = cmapname
 
+  def set_runname(self, runname):
+    self.runname = runname
+
 #--------------------------------------------------------------------------------
 if __name__== '__main__':
   debug = 1
   output = 0
-  frtdir = '/work2/noaa/gsienkf/weihuang/jedi/develop/build/fv3-jedi/test/Data/analysis/letkf/gfs/sts'
-  snddir = '/work2/noaa/gsienkf/weihuang/jedi/develop/build/fv3-jedi/test/Data/analysis/letkf/gfs/mts'
+ #datadir = '/work2/noaa/gsienkf/weihuang/jedi/develop/build/fv3-jedi/test/Data/analysis/letkf/gfs/mts'
+  datadir = '/work2/noaa/gsienkf/weihuang/jedi/develop/build/fv3-jedi/test'
 
-  frtfile = '%s/xainc.20201215_000000z.nc4' %(frtdir)
-  sndfile = '%s/xainc.20201215_000000z.nc4' %(snddir)
+  filename = 'letkf.mid.00020201215_000000z.nc4'
 
   opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'output=',
-                                                'sndfile=', 'frtfile='])
+                                                'filename=', 'datadir='])
   for o, a in opts:
     if o in ('--debug'):
       debug = int(a)
     elif o in ('--output'):
       output = int(a)
-    elif o in ('--sndfile'):
-      sndfile = a
-    elif o in ('--frtfile'):
-      frtfile = a
+    elif o in ('--datadir'):
+      datadir = a
+    elif o in ('--filename'):
+      filename = a
     else:
       assert False, 'unhandled option'
 
   gp = GeneratePlot(debug=debug, output=output)
 
-  ncfrt = netcdf_dataset(frtfile)
-  ncsnd = netcdf_dataset(sndfile)
+  fullpath = '%s/%s' %(datadir, filename)
+  ncfile = netcdf_dataset(fullpath)
 
-  lats = ncfrt.variables['lat'][:]
-  lons = ncfrt.variables['lon'][:]
+  lats = ncfile.variables['lat'][:]
+  lons = ncfile.variables['lon'][:]
 
 #-----------------------------------------------------------------------------------------
-  clevs = np.arange(-1.0, 1.01, 0.01)
-  cblevs = np.arange(-1.0, 1.1, 0.1)
+  clevs = np.arange(200.0, 306.0, 1.0)
+  cblevs = np.arange(200.0, 310.0, 5.0)
 
   gp.set_clevs(clevs=clevs)
   gp.set_cblevs(cblevs=cblevs)
 
 #-----------------------------------------------------------------------------------------
- #snd_varlist = ['T', 'ua', 'va', 'sphum', 'DELP', 'DZ', 'o3mr']
- #frt_varlist = ['T', 'ua', 'va', 'sphum', 'DELP', 'DZ', 'o3mr']
- #unitlist = ['Unit (C)', 'Unit (m/s)', 'Unit (m/s)',
- #            'Unit (kg/kg)', 'Unit (Pa)', 'Unit (m)', 'Unit (ppm)']
-  snd_varlist = ['T', 'ua', 'va', 'sphum', 'DELP', 'o3mr']
-  frt_varlist = ['T', 'ua', 'va', 'sphum', 'DELP', 'o3mr']
+  varlist = ['T', 'ua', 'va', 'sphum', 'delp', 'DZ', 'o3mr']
   unitlist = ['Unit (C)', 'Unit (m/s)', 'Unit (m/s)',
-              'Unit (kg/kg)', 'Unit (Pa)', 'Unit (ppm)']
+              'Unit (kg/kg)', 'Unit (Pa', 'Unit (m', 'Unit (ppm)']
 
 #-----------------------------------------------------------------------------------------
-  for n in range(len(snd_varlist)):
-    sndvar = ncsnd.variables[snd_varlist[n]][0, :, :, :]
-    frtvar = ncfrt.variables[frt_varlist[n]][0,:, :, :]
+  for n in range(len(varlist)):
+    var = ncfile.variables[varlist[n]][0,:, :, :]
+    gp.set_runname([varlist[n]])
 
-    nlev, nlat, nlon = sndvar.shape
-    print('sndvar.shape = ', sndvar.shape)
-    print('frtvar.shape = ', frtvar.shape)
+    nlev, nlat, nlon = var.shape
+    print('var.shape = ', var.shape)
 
     gp.set_label(unitlist[n])
 
     for lev in range(5, nlev, 10):
-      v0 = frtvar[lev,:,:]
-      v1 = sndvar[lev,:,:]
-      v2 = v1 - v0
+      data = var[lev,:,:]
 
-      data = [v0, v1, v2]
-
-      title = '%s at Level %d' %(snd_varlist[n], lev)
+      title = '%s at Level %d' %(varlist[n], lev)
       gp.set_title(title)
 
       print('Plotting ', title)
-      print('\tv0.shape = ', v0.shape)
-      print('\tv1.shape = ', v1.shape)
-      print('\tv2.shape = ', v2.shape)
+      print('\tdata.shape = ', data.shape)
  
-      print('\tv0.max: %f, v0.min: %f' %(np.max(v0), np.min(v0)))
-      print('\tv1.max: %f, v1.min: %f' %(np.max(v1), np.min(v1)))
-      print('\tv2.max: %f, v2.min: %f' %(np.max(v2), np.min(v2)))
+      print('\tdata.max: %f, data.min: %f' %(np.max(data), np.min(data)))
 
-      imagename = '%s_lev_%3.3d.png' %(snd_varlist[n], lev)
+      imagename = '%s_lev_%3.3d.png' %(varlist[n], lev)
       gp.set_imagename(imagename)
 
-      gp.plot(lons, lats, data=data)
+      gp.plot(lons, lats, data)
 
 #-----------------------------------------------------------------------------------------
-  ncsnd.close()
-  ncfrt.close()
+  ncfile.close()
 
