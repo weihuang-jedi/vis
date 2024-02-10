@@ -10,22 +10,42 @@ import netCDF4
 class ReadIODA2Obs():
   def __init__(self, debug=0, filename=None):
     self.debug = debug
-    self.filename = filename
 
     if(self.debug):
       print('debug = ', debug)
       print('filename = ', filename)
 
+    self.set_defaults()
+    self.set_filename(filename)
+
+  def set_defaults(self):
     self.ndatetime = 0
     self.nlocs = 0
     self.nstring = 0
     self.nvars = 0
+    self.ndims = 0
+    self.ngroups = 0
+    self.variables = []
+    self.groups = []
+    self.ncfile = None
 
-    if(filename != None):
-      self.set_vardims()
-
-  def set_filename(self, filename=None):
+  def set_filename(self, filename):
     self.filename = filename
+    self.close()
+
+    self.set_defaults()
+
+    if(os.path.exists(filename)):
+      self.ncfile = netCDF4.Dataset(self.filename, 'r')
+      self.setup(verb=False)
+
+  def close(self):
+    if(self.ncfile is not None):
+      self.ncfile.close()
+    self.ncfile = None
+
+  def get_variablesInGroup(self, grpname):
+    return self.groups[grpname].variables
 
   def get_groupNvar_name(self, gvstr):
     np = gvstr.rfind('/')
@@ -42,7 +62,7 @@ class ReadIODA2Obs():
 
     return gname, vname
 
-  def ncdump(self, nc_fid, verb=True):
+  def setup(self, verb=True):
     '''
     ncdump outputs dimensions, variables and their attribute information.
     The information is similar to that of NCAR's ncdump utility.
@@ -50,18 +70,18 @@ class ReadIODA2Obs():
 
     Parameters
     ----------
-    nc_fid : netCDF4.Dataset
+    ncfile : netCDF4.Dataset
         A netCDF4 dateset object
     verb : Boolean
-        whether or not nc_attrs, nc_dims, and nc_vars are printed
+        whether or not self.attributes, self.dimensions, and self.variables are printed
 
     Returns
     -------
-    nc_attrs : list
+    self.attributes : list
         A Python list of the NetCDF file global attributes
-    nc_dims : list
+    self.dimensions : list
         A Python list of the NetCDF file dimensions
-    nc_vars : list
+    self.variables : list
         A Python list of the NetCDF file variables
     '''
     def print_ncattr(key):
@@ -74,86 +94,89 @@ class ReadIODA2Obs():
             a valid netCDF4.Dataset.variables key
         """
         try:
-            print("\t\ttype:", repr(nc_fid.variables[key].dtype))
-            for ncattr in nc_fid.variables[key].ncattrs():
+            print("\t\ttype:", repr(self.ncfile.variables[key].dtype))
+            for ncattr in self.ncfile.variables[key].ncattrs():
                 print('\t\t%s:' % ncattr,
-                      repr(nc_fid.variables[key].getncattr(ncattr)))
+                      repr(self.ncfile.variables[key].getncattr(ncattr)))
         except KeyError:
             print("\t\tWARNING: %s does not contain variable attributes" % key)
 
     # NetCDF global attributes
-    nc_attrs = nc_fid.ncattrs()
+    self.attributes = self.ncfile.ncattrs()
     if verb:
         print("NetCDF Global Attributes:")
-        for nc_attr in nc_attrs:
-            print('\t%s:' % nc_attr, repr(nc_fid.getncattr(nc_attr)))
-    nc_dims = [dim for dim in nc_fid.dimensions]  # list of nc dimensions
+        for attr in self.attributes:
+            print('\t%s:' % attr, repr(self.ncfile.getncattr(attr)))
+    self.dimensions = [dim for dim in self.ncfile.dimensions]  # list of nc dimensions
     # Dimension shape information.
     if verb:
         print("NetCDF dimension information:")
-        for dim in nc_dims:
+        for dim in self.dimensions:
             print("\tName:", dim)
-            print("\t\tsize:", len(nc_fid.dimensions[dim]))
+            print("\t\tsize:", len(self.ncfile.dimensions[dim]))
             if ('ndatetime' == dim):
-                self.ndatetime = len(nc_fid.dimensions[dim])
+                self.ndatetime = len(self.ncfile.dimensions[dim])
             elif ('nlocs' == dim):
-                self.nlocs = len(nc_fid.dimensions[dim])
+                self.nlocs = len(self.ncfile.dimensions[dim])
             elif ('nstring' == dim):
-                self.nstring = len(nc_fid.dimensions[dim])
+                self.nstring = len(self.ncfile.dimensions[dim])
             elif ('nvars' == dim):
-                self.nvars = len(nc_fid.dimensions[dim])
+                self.nvars = len(self.ncfile.dimensions[dim])
             print_ncattr(dim)
     # Variable information.
-    nc_vars = [var for var in nc_fid.variables]  # list of nc variables
+    self.variables = [var for var in self.ncfile.variables]  # list of nc variables
     if verb:
         print("NetCDF variable information:")
-        for var in nc_vars:
-            if var not in nc_dims:
+        for var in self.variables:
+            if var not in self.dimensions:
                 print('\tName:', var)
-                print("\t\tdimensions:", nc_fid.variables[var].dimensions)
-                print("\t\tsize:", nc_fid.variables[var].size)
+                print("\t\tdimensions:", self.ncfile.variables[var].dimensions)
+                print("\t\tsize:", self.ncfile.variables[var].size)
                 print(ncattr(var))
 
         print('\tself.ndatetime:', self.ndatetime)
         print('\tself.nlocs:', self.nlocs)
         print('\tself.nstring:', self.nstring)
         print('\tself.nvars:', self.nvars)
-    return nc_attrs, nc_dims, nc_vars
+    self.groups = [grp for grp in self.ncfile.groups]  # list of nc groups
+
+  def get_groups(self):
+    return self.groups
+
+  def get_dimensions(self):
+    return self.dimensions
 
   def get_var(self, ncvarname):
-    print('Processing FV3 file %s for variable %s.' % (self.filename, ncvarname))
-
     gname, vname = self.get_groupNvar_name(ncvarname)
 
    #print('gname = ', gname)
    #print('vname = ', vname)
 
-    ncfile = netCDF4.Dataset(self.filename, 'r')
     if (gname is None):
-      var = ncfile.variables[ncvarname][:]
+      var = self.ncfile.variables[ncvarname][:]
     else:
      #print('gname = ', gname)
      #print('vname = ', vname)
 
-      ncgroup = ncfile[gname]
+      ncgroup = self.ncfile[gname]
       var = ncgroup.variables[vname][:]
-    ncfile.close()
     return var
 
-  def set_vardims(self):
-    ncfile = netCDF4.Dataset(self.filename, 'r')
-    if(self.debug > 1):
-      print('ncpath = ', ncpath)
-      print('self.filename = ', self.filename)
-    nc_attrs, nc_dims, nc_vars = self.ncdump(ncfile, verb=True)
-   #nc_attrs, nc_dims, nc_vars = self.ncdump(ncfile, verb=False)
+  def get_2d_var(self, ncvarname):
+    gname, vname = self.get_groupNvar_name(ncvarname)
 
-   #print('nc_dims: ', nc_dims)
-   #print('nc_vars: ', nc_vars)
+   #print('gname = ', gname)
+   #print('vname = ', vname)
 
-    if(self.debug):
-      print('nc_dims: ', nc_dims)
-    ncfile.close()
+    if (gname is None):
+      var = self.ncfile.variables[ncvarname][:,:]
+    else:
+     #print('gname = ', gname)
+     #print('vname = ', vname)
+
+      ncgroup = self.ncfile[gname]
+      var = ncgroup.variables[vname][:,:]
+    return var
 
   def get_latlon(self):
     lat = self.get_var('/MetaData/latitude')
@@ -203,8 +226,8 @@ class ReadIODA2Obs():
     short_lon = np.delete(lon, mask)
     short_var = np.delete(var, mask)
 
-    print('len(short_lat) = ', len(short_lat))
-    print('len(short_lon) = ', len(short_lon))
+   #print('len(short_lat) = ', len(short_lat))
+   #print('len(short_lon) = ', len(short_lon))
 
     return short_lat, short_lon, short_var
 
