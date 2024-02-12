@@ -9,6 +9,7 @@
 import getopt
 import os, sys
 import types
+import math
 import time
 import datetime
 import subprocess
@@ -46,13 +47,20 @@ class Compare2ObsFiles():
       print('casefile: <%s> does not exist. Stop.' %(casefile))
       sys.exit(-1)
 
+    print('basefile:', basefile)
+    print('casefile:', casefile)
+
 #------------------------------------------------------------------
   def get_groups(self):
-    basegrps = self.baseio.get_groups()
-    casegrps = self.caseio.get_groups()
+    self.basegrps = self.baseio.get_groups()
+    self.casegrps = self.caseio.get_groups()
+
+   #print('self.baseio.groups=', self.basegrps)
+   #print('self.caseio.groups=', self.casegrps)
+
     grps = []
-    for grp in casegrps:
-      if(grp in basegrps):
+    for grp in self.casegrps:
+      if(grp in self.basegrps):
         if(grp != 'MetaData'):
           grps.append(grp)
 
@@ -60,7 +68,9 @@ class Compare2ObsFiles():
 
 #------------------------------------------------------------------
   def get_variables(self, grp):
-    return self.caseio.groups[grp].variables
+    variables = self.caseio.get_varlistInGroup(grp)
+   #print('variables:', variables)
+    return variables
 
 #------------------------------------------------------------------
   def compare_int_variable(self, varname):
@@ -85,10 +95,11 @@ class Compare2ObsFiles():
         if(diff[n] != 0):
           print('\tNo %d: c %d, b %d, diff: %d' %(n+1, case_var[n], base_var[n], diff[n]))
     else:
-      print('var: %s has no difference' %(varname))
+      if(self.debug):
+        print('var: %s has no difference' %(varname))
 
 #------------------------------------------------------------------
-  def compare_float_variable(varname):
+  def compare_float_variable(self, varname):
     base_var = self.baseio.get_var(varname)
     case_var = self.caseio.get_var(varname)
 
@@ -101,6 +112,8 @@ class Compare2ObsFiles():
 
     nd = 0
     for n in range(len(case_var)):
+      if(math.isnan(base_var[n]) or math.isnan(case_var[n])):
+        continue
       if(abs(diff[n]) > self.delt):
         nd += 1
 
@@ -108,13 +121,16 @@ class Compare2ObsFiles():
       print('Difference of %s\n' %(varname))
       print('\tLen(var): %d, nd: %d, mindif: %f, maxdif: %f' %(len(case_var), nd, np.min(diff), np.max(diff)))
       for n in range(len(case_var)):
+        if(math.isnan(base_var[n]) or math.isnan(case_var[n])):
+          continue
         if(abs(diff[n]) > self.delt):
           print('\tNo %d: c %f, b %f, diff: %f' %(n+1, case_var[n], base_var[n], diff[n]))
     else:
-      print('var: %s has no difference' %(varname))
+      if(self.debug):
+        print('var: %s has no difference' %(varname))
  
 #------------------------------------------------------------------
-  def compare_2d_int_variable(varname):
+  def compare_2d_int_variable(self, varname):
     base_var = self.baseio.get_2d_var(varname)
     case_var = self.caseio.get_2d_var(varname)
 
@@ -138,10 +154,11 @@ class Compare2ObsFiles():
           if(diff[j,i] != 0):
             print('\tJ: %d, I: %d: c %d, b %d, diff: %d' %(j, i, case_var[j,i], base_var[j,i], diff[j,i]))
     else:
-      print('var: %s has no difference' %(varname))
+      if(self.debug):
+        print('var: %s has no difference' %(varname))
 
 #------------------------------------------------------------------
-  def compare_2d_float_variable(datadir, filename, varname):
+  def compare_2d_float_variable(self, varname):
     base_var = self.baseio.get_2d_var(varname)
     case_var = self.caseio.get_2d_var(varname)
 
@@ -159,7 +176,9 @@ class Compare2ObsFiles():
     nd = 0
     for j in range(len(case_var)):
       for i in range(len(case_var[0])):
-        if(abs(diff[j,i]) > delt):
+        if(math.isnan(base_var[j,i]) or math.isnan(case_var[j,i])):
+          continue
+        if(abs(diff[j,i]) > self.delt):
           nd += 1
 
     if(nd):
@@ -169,10 +188,13 @@ class Compare2ObsFiles():
       print('\tLen(var): %d, nd: %d, mindif: %f, maxdif: %f' %(len(case_var), nd, np.min(diff), np.max(diff)))
       for j in range(len(case_var)):
         for i in range(len(case_var[0])):
-          if(abs(diff[j,i]) > delt):
+          if(math.isnan(base_var[j,i]) or math.isnan(case_var[j,i])):
+            continue
+          if(abs(diff[j,i]) > self.delt):
             print('\tJ: %d, I: %d: c %d, b %d, diff: %d' %(j, i, case_var[j,i], base_var[j,i], diff[j,i]))
     else:
-      print('var: %s has no difference' %(varname))
+      if(self.debug):
+        print('var: %s has no difference' %(varname))
 
 #------------------------------------------------------------------
 if __name__== '__main__':
@@ -200,24 +222,38 @@ if __name__== '__main__':
                    'aircraft_letkf-gfs_2020121500_m.nc4',
                    'scatwind_letkf-gfs_2020121500_m.nc4']:
     cof.setup(datadir=datadir, filename=filename)
-    varlist = cof.get_variables('EffectiveQC0')
-    for grp in ctof.get_groups():
-      for var in varlist:
-        varname = '/%s/%s' %(grp, var)
-        if(grp in ['EffectiveQC0', 'EffectiveQC2', 'ObsType', 'PreQC', 'PreUseFlag']):
-          cof.compare_int_variable(varname)
-        else:
+    qclist = cof.get_variables('EffectiveQC0')
+    varlist = cof.get_variables('ombg')
+    for grp in cof.get_groups():
+      if(grp in ['GsiInputObsError']):
+        continue
+
+      if(grp in ['EffectiveQC0', 'EffectiveQC2', 'ObsType', 'PreQC', 'PreUseFlag']):
+        for var in varlist:
+          varname = '/%s/%s' %(grp, var)
+          if(var in qclist):
+            cof.compare_int_variable(varname)
+      else:
+        for var in varlist:
+          varname = '/%s/%s' %(grp, var)
           cof.compare_float_variable(varname)
 
 #------------------------------------------------------------------
   filename = 'amsua_n19_letkf-gfs_2020121500_m.nc4'
   cof.setup(datadir=datadir, filename=filename)
-  varlist = cof.get_variables('EffectiveQC0')
-  for grp in ctof.get_groups():
-    for var in varlist:
-      varname = '/%s/%s' %(grp, var)
-      if(grp in ['EffectiveQC0', 'EffectiveQC2', 'ObsType', 'PreQC', 'PreUseFlag']):
-        cof.compare_2d_int_variable(varname)
-      else:
+  qclist = cof.get_variables('EffectiveQC0')
+  varlist = cof.get_variables('ombg')
+  for grp in cof.get_groups():
+    if(grp in ['GsiInputObsError']):
+      continue
+
+    if(grp in ['EffectiveQC0', 'EffectiveQC2', 'ObsType', 'PreQC', 'PreUseFlag']):
+      for var in varlist:
+        varname = '/%s/%s' %(grp, var)
+        if(var in qclist):
+          cof.compare_2d_int_variable(varname)
+    else:
+      for var in varlist:
+        varname = '/%s/%s' %(grp, var)
         cof.compare_2d_float_variable(varname)
 

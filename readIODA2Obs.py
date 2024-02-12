@@ -18,6 +18,7 @@ class ReadIODA2Obs():
     self.set_defaults()
     self.set_filename(filename)
 
+#------------------------------------------------------------------
   def set_defaults(self):
     self.ndatetime = 0
     self.nlocs = 0
@@ -29,6 +30,7 @@ class ReadIODA2Obs():
     self.groups = []
     self.ncfile = None
 
+#------------------------------------------------------------------
   def set_filename(self, filename):
     self.filename = filename
     self.close()
@@ -39,21 +41,24 @@ class ReadIODA2Obs():
       self.ncfile = netCDF4.Dataset(self.filename, 'r')
       self.setup(verb=False)
 
+#------------------------------------------------------------------
   def close(self):
     if(self.ncfile is not None):
       self.ncfile.close()
     self.ncfile = None
 
+#------------------------------------------------------------------
   def get_variablesInGroup(self, grpname):
     return self.groups[grpname].variables
 
+#------------------------------------------------------------------
   def get_groupNvar_name(self, gvstr):
     np = gvstr.rfind('/')
     if (np < 0):
       gname = None
       vname = gvstr
     else:
-      gname = gvstr[:np]
+      gname = gvstr[1:np]
       vname = gvstr[np+1:]
 
    #if(self.debug):
@@ -62,6 +67,7 @@ class ReadIODA2Obs():
 
     return gname, vname
 
+#------------------------------------------------------------------
   def setup(self, verb=True):
     '''
     ncdump outputs dimensions, variables and their attribute information.
@@ -138,14 +144,18 @@ class ReadIODA2Obs():
         print('\tself.nlocs:', self.nlocs)
         print('\tself.nstring:', self.nstring)
         print('\tself.nvars:', self.nvars)
-    self.groups = [grp for grp in self.ncfile.groups]  # list of nc groups
 
-  def get_groups(self):
-    return self.groups
+#------------------------------------------------------------------
+  def get_varlistInGroup(self, grpname):
+    group = self.ncfile.groups[grpname]
+    varlist = [var for var in group.variables]
+    return varlist
 
+#------------------------------------------------------------------
   def get_dimensions(self):
     return self.dimensions
 
+#------------------------------------------------------------------
   def get_var(self, ncvarname):
     gname, vname = self.get_groupNvar_name(ncvarname)
 
@@ -162,11 +172,33 @@ class ReadIODA2Obs():
       var = ncgroup.variables[vname][:]
     return var
 
-  def get_2d_var(self, ncvarname):
+#------------------------------------------------------------------
+  def get_groups(self):
+    groups = [grp for grp in self.ncfile.groups]
+    return groups
+
+#------------------------------------------------------------------
+  def get_dimensions(self):
+    return self.dimensions
+
+#------------------------------------------------------------------
+  def get_var(self, ncvarname):
     gname, vname = self.get_groupNvar_name(ncvarname)
 
-   #print('gname = ', gname)
-   #print('vname = ', vname)
+    if (gname is None):
+      var = self.ncfile.variables[ncvarname][:]
+    else:
+     #print('gname = ', gname)
+     #print('vname = ', vname)
+
+      ncgroup = self.ncfile.groups[gname]
+     #print('ncgroup.variables: ', ncgroup.variables)
+      var = ncgroup.variables[vname][:]
+    return var
+
+#------------------------------------------------------------------
+  def get_2d_var(self, ncvarname):
+    gname, vname = self.get_groupNvar_name(ncvarname)
 
     if (gname is None):
       var = self.ncfile.variables[ncvarname][:,:]
@@ -174,27 +206,23 @@ class ReadIODA2Obs():
      #print('gname = ', gname)
      #print('vname = ', vname)
 
-      ncgroup = self.ncfile[gname]
+      ncgroup = self.ncfile.groups[gname]
       var = ncgroup.variables[vname][:,:]
     return var
 
+#------------------------------------------------------------------
   def get_latlon(self):
-    lat = self.get_var('/MetaData/latitude')
-    lon = self.get_var('/MetaData/longitude')
-
-    return lat, lon
-
-  def get_latlon_from_file(self, filename):
-    ncfile = netCDF4.Dataset(filename, 'r')
-    ncgroup = ncfile['MetaData']
+   #lat = self.get_var('/MetaData/latitude')
+   #lon = self.get_var('/MetaData/longitude')
+    ncgroup = self.ncfile.groups['MetaData']
     lat = ncgroup.variables['latitude'][:]
     lon = ncgroup.variables['longitude'][:]
-    ncfile.close()
 
     lon = np.where(lon > 0, lon, lon+360.0)
 
     return lat, lon
 
+#------------------------------------------------------------------
   def get_latlon4var(self, varname=None):
     lat, lon = self.get_latlon()
     if(varname is None):
@@ -231,7 +259,7 @@ class ReadIODA2Obs():
 
     return short_lat, short_lon, short_var
 
-# ----
+#------------------------------------------------------------------
 if __name__ == '__main__':
   debug = 1
   filename = '/work/noaa/gsienkf/weihuang/jedi/case_study/sondes/ioda_v2_data/obs/ncdiag.oper.ob.PT6H.sondes.2021-01-08T21:00:00Z.nc4'
