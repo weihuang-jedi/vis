@@ -216,8 +216,12 @@ if __name__== '__main__':
 
 #--------------------------------------------------------------------------------
   obsdir = '/scratch2/BMC/gsienkf/Wei.Huang/jedi/dev/build/intel/fv3-jedi/test/Data'
- #filename = 'amsua_n19_letkf-gfs_2020121500_m.nc4'
-  filename = 'amsua_n19_lgetkf-geos_2020121500_m.nc4'
+
+  obstype = 'amsua_n19'
+  enskind = 'lgetkf-geos'
+  varbase = 'brightnessTemperature'
+
+  filename = '%s_%s_2020121500_m.nc4' %(obstype, enskind)
 
 #--------------------------------------------------------------------------------
  #basefile = '%s/hofx.nl/%s' %(obsdir, filename)
@@ -231,51 +235,14 @@ if __name__== '__main__':
   caseio = ReadIODA2Obs(debug=debug, filename=casefile)
 
 #--------------------------------------------------------------------------------
-  varbase = 'brightnessTemperature'
- #varname = '/ombg/%s' %(varbase)
- #varname = '/hofx_y_mean_xb0/%s' %(varbase)
-  varname = '/hofx0/%s' %(varbase)
-
  #for group in ['hofx_y_mean_xb0', 'hofx0', 'hofx1', 'hofx02', 'hofx0_1', 'hofx0_2', 'hofx0_3', 'hofx1_1', 'hofx1_2', 'hofx1_3', 'oman', 'ombg']:
  #for group in ['hofx_y_mean_xb0', 'hofx0', 'hofx0_1', 'hofx0_2', 'hofx0_3', 'hofx1_1', 'hofx1_2', 'hofx1_3', 'oman', 'ombg']:
-  for group in ['hofx_y_mean_xb0', 'oman', 'ombg']:
-    varname = '/%s/%s' %(group, varbase)
-    base_var = baseio.get_2d_var(varname)
-    case_var = caseio.get_2d_var(varname)
 
-    print('varname: ', varname)
-    print('len(case_var) = ', len(case_var))
-    print('len(case_var[0]) = ', len(case_var[0]))
+  group = 'ombg'
+  varname = '/%s/%s' %(group, varbase)
+  base_var = baseio.get_2d_var(varname)
+  case_var = caseio.get_2d_var(varname)
 
-    for channel in range(len(case_var[0])):
-      print('channel:', channel)
-      diffvar = case_var[:,channel] - base_var[:, channel]
-     #print('\tbase_var:\n', base_var[:,channel])
-     #print('\tcase_var:\n', case_var[:,channel])
-  
-     #print('\ttotal base_var.max: %f, base_var.min: %f' %(np.max(base_var), np.min(base_var)))
-     #print('\ttotal case_var.max: %f, case_var.min: %f' %(np.max(case_var), np.min(case_var)))
-     #print('\tchannel: %d, base_var.max: %f, base_var.min: %f' %(channel, np.max(base_var[:,channel]), np.min(base_var[:,channel])))
-     #print('\tchannel: %d, case_var.max: %f, case_var.min: %f' %(channel, np.max(case_var[:,channel]), np.min(case_var[:,channel])))
-      print('\tdiffvar.max: %f, diffvar.min: %f' %(np.max(diffvar), np.min(diffvar)))
-
-      delt = 1.0e-10
-
-      nd = 0
-      n = 0
-
-      for i in range(len(diffvar)):
-          n += 1
-          if(abs(diffvar[i]) > delt):
-           #print('%d: c %f, b %f, diff: %f' %(n+1, case_var[i,channel], base_var[i,channel], diff[i,channel]))
-            nd += 1
-
-      if(nd):
-        print('Len(var): %d, nd: %d, mindif: %f, maxdif: %f' %(case_var.size, nd, np.min(diffvar), np.max(diffvar)))
-
- #sys.exit(0)
-  channel = 3
-  diffvar = case_var[:,channel] - base_var[:, channel]
 #--------------------------------------------------------------------------------
   gp = GeneratePlot(debug=debug, output=output)
 
@@ -285,7 +252,6 @@ if __name__== '__main__':
   gridlon = ncbase.variables['lon'][:]
 
 #-----------------------------------------------------------------------------------------
-  gp.set_obs_lonlat(obslon, obslat, svar=diffvar)
   gp.switch_marker_on()
 
 #-----------------------------------------------------------------------------------------
@@ -296,11 +262,16 @@ if __name__== '__main__':
   gp.set_cblevs(cblevs=cblevs)
 
 #-----------------------------------------------------------------------------------------
-  varlist1 = ['T', 'ua', 'va', 'sphum', 'delp', 'DZ', 'o3mr']
-  varlist2 = ['T', 'ua', 'va', 'sphum', 'delp', 'DZ', 'o3mr']
+ #varlist1 = ['T', 'ua', 'va', 'sphum', 'delp', 'DZ', 'o3mr']
+ #varlist2 = ['T', 'ua', 'va', 'sphum', 'delp', 'DZ', 'o3mr']
 
-  unitlist = ['Unit (C)', 'Unit (m/s)', 'Unit (m/s)',
-              'Unit (kg/kg)', 'Unit (Pa', 'Unit (m', 'Unit (ppm)']
+ #unitlist = ['Unit (C)', 'Unit (m/s)', 'Unit (m/s)',
+ #            'Unit (kg/kg)', 'Unit (Pa', 'Unit (m', 'Unit (ppm)']
+
+  varlist1 = ['T']
+  varlist2 = ['T']
+
+  unitlist = ['Unit (C)']
 
 #-----------------------------------------------------------------------------------------
   for n in range(len(varlist1)):
@@ -320,20 +291,28 @@ if __name__== '__main__':
 
       data = [v1, v2, dv]
 
-      title = '%s at Level %d' %(varlist1[n], lev)
-      gp.set_title(title)
-
-      print('Plotting ', title)
       print('\tv1.shape = ', v1.shape)
       print('\tv2.shape = ', v2.shape)
- 
       print('\tv1.max: %f, v1.min: %f' %(np.max(v1), np.min(v1)))
       print('\tv2.max: %f, v2.min: %f' %(np.max(v2), np.min(v2)))
+      print('\tdv.max: %f, dv.min: %f' %(np.max(dv), np.min(dv)))
 
-      imagename = '%s_lev_%3.3d.png' %(varlist1[n], lev)
-      gp.set_imagename(imagename)
+      for channel in range(3, 14):
+        diffvar = case_var[:,channel] - base_var[:, channel]
 
-      gp.plot(gridlon, gridlat, data=data)
+        titlelabel = '%s %s %s channel %d' %(obstype, enskind, varbase, channel)
+        plotlabel = '%s_%s_%s_channel_%d' %(obstype, enskind, varbase, channel)
+        gp.set_obs_lonlat(obslon, obslat, svar=diffvar)
+
+        title = '%s %s at Level %d' %(titlelabel, varlist1[n], lev)
+        gp.set_title(title)
+
+        print('Plotting ', title)
+
+        imagename = '%s_%s_lev_%3.3d.png' %(plotlabel, varlist1[n], lev)
+        gp.set_imagename(imagename)
+
+        gp.plot(gridlon, gridlat, data=data)
 
 #-----------------------------------------------------------------------------------------
   ncbase.close()
