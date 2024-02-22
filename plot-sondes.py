@@ -98,7 +98,7 @@ class GeneratePlot():
     else:
       plt.show()
 
-  def plot_obs_marker(self, lons, lats, data, obslon, obslat):
+  def plot_obs_marker(self, lons, lats, data, obslon, obslat, obsval):
     nrows = 1
     ncols = 1
 
@@ -146,8 +146,40 @@ class GeneratePlot():
     obssize[:] = 10
 
    #adding marks:
-    axs.scatter(obslon, obslat, color="orangered",
-                s=obssize, alpha=0.8, transform=proj)
+    plon = obslon.copy()
+    plat = obslat.copy()
+    pval = obsval.copy()
+    pcol = []
+    psiz = []
+
+    i = 0
+    for n in range(len(obslon)):
+      if(not np.isnan(obsval[n])):
+        plon[i] = obslon[n]
+        plat[i] = obslat[n]
+        pval[i] = obsval[n]
+        if(pval[i] >= 0.0):
+          pcol.append('red')
+          psiz.append(int(1 + 10.0*pval[i]))
+        else:
+          pcol.append('blue')
+          psiz.append(int(1 - 10.0*pval[i]))
+        i += 1
+
+   #if(i):
+   #  indices = np.linspace(0, i, i)
+   #  colors = np.sin(indices/float(i))
+   #else:
+   #  indices = np.linspace(0, 1, 1)
+   #  colors = np.sin(indices/float(1))
+
+   #axs.scatter(obslon, obslat, color="orangered",
+   #            s=obssize, alpha=0.8, transform=proj)
+    axs.scatter(plon[0:i], plat[0:i], color=pcol,
+                s=psiz, alpha=0.8, transform=proj)
+
+   #colors = ["red", "blue", "green"]
+   #plt.scatter(X, Y, color = colors)
 
    #Adjust the location of the subplots on the page to make room for the colorbar
     fig.subplots_adjust(bottom=0.1, top=0.9, left=0.05, right=0.95,
@@ -308,7 +340,7 @@ if __name__== '__main__':
       gp.set_imagename(imagename)
 
      #gp.plot(lons, lats, data)
-      gp.plot_obs_marker(lons, lats, data, olon, olat)
+      gp.plot_obs_marker(lons, lats, data, olon, olat, tomb)
 
 #-----------------------------------------------------------------------------------------
   ncfile.close()

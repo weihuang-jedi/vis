@@ -5,7 +5,7 @@ import numpy as np
 import getopt
 
 import matplotlib as mpl
-mpl.rcParams['figure.dpi']= 300
+mpl.rcParams['figure.dpi']= 500
 
 #=========================================================================
 class MakePanelPlot():
