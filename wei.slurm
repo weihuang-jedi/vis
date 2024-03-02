@@ -4,18 +4,20 @@
 #SBATCH -n 1
 #SBATCH -t 03:25:00
 #SBATCH -A gsienkf
-##SBATCH --partition=orion
 #SBATCH --partition=bigmem
-#SBATCH --job-name=python
-#SBATCH --output=log.python
+#SBATCH --job-name=plot
+#SBATCH --output=log.plot-incr+obsdiff
 ##SBATCH --mem=0
 
- source ~/intelenv
+ source ~/pythonenv
 
 #ulimit -S unlimited
 #ulimit -c unlimited
 
-#python all-obs-jedi.py --output=1 | tee log.all-obs.out
+#python all-obs-jedi.py --output=1
+#python tile-dist.py --output=1
 
- python tile-dist.py --output=1 | tee log.tile-dist.out
+ python plot-incr+obsdiff.py --output=1
+
+ trimit
 

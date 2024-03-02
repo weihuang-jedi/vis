@@ -100,7 +100,7 @@ class GeneratePlot():
               colors[n] = 'magenta'
 
      #adding marker:
-     #dotes = axs[i].scatter(self.obslon, self.obslat, s=msz, c=colors)
+      dotes = axs[i].scatter(self.obslon, self.obslat, s=msz, c=colors)
 
    #Adjust the location of the subplots on the page to make room for the colorbar
     fig.subplots_adjust(bottom=0.1, top=0.9, left=0.05, right=0.8,
@@ -486,6 +486,90 @@ class GeneratePlot():
     else:
       plt.show()
 
+#--------------------------------------------------------------------------------
+  def plot_vertical_profile(self, grdlon, grdlat, grdlev, t1, t2,
+                            obslon, obslat, obsflg, ns, casename):
+    nlev = len(grdlev)
+    nrows = 3
+    ncols = 4
+
+    imgname = casename
+    figtitle = 'Increments of %s at Obs No.' %(casename)
+
+    fig, axs = plt.subplots(nrows=nrows,ncols=ncols, figsize=(11,8.5))
+
+    dltlon = grdlon[1] - grdlon[0]
+    dltlat = grdlat[1] - grdlat[0]
+
+    label1='nonlinear'
+    label2='linear'
+    n = ns
+    row = 0
+    while(n < len(obslon) and row < nrows):
+      if(obsflg[n] > 0):
+        n += 1
+        continue
+      imgname = '%s_%d' %(imgname, n)
+      figtitle = '%s %d' %(figtitle, n)
+      lonidx = int(obslon[n]/dltlon)
+      latidx = int((obslat[n] + 90.0)/dltlat)
+      col = 0
+      for j in [0, 1]:
+        for i in [0, 1]:
+          x1 = t1[:,latidx+j,lonidx+i]
+          x2 = t2[:,latidx+j,lonidx+i]
+
+          obsloc = 'olon %6.2f olat %6.2f' %(obslon[n], obslat[n])
+          title = '%s, glon %5.1f glat %5.1f' %(obsloc, grdlon[lonidx+i], grdlat[latidx+j])
+
+          line1 = axs[row,col].plot(x1[::-1], -grdlev[::-1], label=label1, color='r')
+          line2 = axs[row,col].plot(x2[::-1], -grdlev[::-1], '-.', label=label2, color='b')
+          axs[row,col].set_title(title, fontsize=6)
+
+          major_ticks_top=np.linspace(-1.0,1.0,5)
+          axs[row,col].set_xticks(major_ticks_top)
+    
+          minor_ticks_top=np.linspace(-1.0,1.0,9)
+          axs[row,col].set_xticks(minor_ticks_top,minor=True)
+
+          intv = int(nlev/10)
+          nbeg = -10*intv
+          major_ticks_left=np.linspace(nbeg,0,intv+1)
+          axs[row,col].set_yticks(major_ticks_left)
+
+          axs[row,col].grid(b=True, which='major', color='green', linestyle='-', alpha=0.5)
+          axs[row,col].grid(b=True, which='minor', color='green', linestyle='dotted', alpha=0.2)
+         #axs[row,col].legend(handles=[line1, line2])
+         #axs[row,col].legend()
+         #axs[row,col].legend(bbox_to_anchor=(1,0), loc='upper right',
+         #                    bbox_transform=fig.transFigure, fontsize=6)
+          axs[row,col].legend(loc='upper right', fontsize=6)
+          axs[row,col].set_xlim(-1.0, 1.0)
+
+          col += 1
+      row += 1
+      n += 1
+
+   #fig.suptitle(figtitle)
+   #add a big axis, hide frame
+    fig.add_subplot(111, frameon=False)
+
+   #hide tick and tick label of the big axis
+    plt.tick_params(labelcolor='none', which='both', top=False, bottom=False, left=False, right=False)
+   #plt.xlabel('Increment')
+    plt.xlabel(figtitle)
+    plt.ylabel('Vertical Levels (reversed)')
+   #fig.canvas.draw()
+    plt.tight_layout()
+
+    if(self.output):
+      plt.savefig(imgname)
+      plt.close()
+    else:
+      plt.show()
+
+    return n
+
 #===================================================================================
 class PlotObsOnMap():
   def __init__(self, debug=0, output=0):
@@ -525,7 +609,7 @@ class PlotObsOnMap():
 #--------------------------------------------------------------------------------
   def process(self, gridbase=None, gridcase=None,
                     obsbase=None, obscase=None,
-                    grplist=None, varlist=None, casename='unknown'):
+                    casename='unknown'):
     self.set_default()
 
     if(os.path.exists(gridbase)):
@@ -558,36 +642,17 @@ class PlotObsOnMap():
       print('File %s does not exist. Stop' %(obscase))
       sys.exit(-1)
 
-    obslat, obslon = self.baseobs.get_latlon()
-    obslon = np.where(obslon > 0, obslon, obslon+360.0)
+    self.obslat, self.obslon = self.baseobs.get_latlon()
+    self.obslon = np.where(self.obslon > 0, self.obslon, self.obslon+360.0)
+    self.obsflg = self.baseobs.get_var('/EffectiveQC0/stationPressure')
 
-    self.gp.set_obs_lonlat(obslon, obslat)
+    self.gp.set_obs_lonlat(self.obslon, self.obslat)
     self.set_casename(casename=casename)
 
-    self.variables = self.ncbase.variables
+    self.grdlat = self.ncbase.variables['lat'][:]
+    self.grdlon = self.ncbase.variables['lon'][:]
 
-    self.gridlat = self.ncbase.variables['lat'][:]
-    self.gridlon = self.ncbase.variables['lon'][:]
-
-   #for n in range(len(self.gridlon)):
-   #  print('No %d lon %f' %(n, self.gridlon[n]))
-   #for n in range(len(self.gridlat)):
-   #  print('No %d lat %f' %(n, self.gridlat[n]))
-
-    for grp in grplist:
-      self.grp = grp
-      for nv in range(len(varlist)):
-        self.varbase = varlist[nv]
-        varname = '/%s/%s' %(grp, self.varbase)
-        print('varname: ', varname)
-
-        if('unknown' == varlist[nv]):
-          continue
-
-        base_var = self.baseobs.get_var(varname)
-        case_var = self.caseobs.get_var(varname)
-        diffvar = case_var - base_var
-        self.plot(nv, diffvar)
+    self.plot(casename)
 
     self.baseobs.close()
     self.caseobs.close()
@@ -612,102 +677,21 @@ class PlotObsOnMap():
     self.enskind = enskind
 
 #-----------------------------------------------------------------------------------------
-  def plot(self, nv, diffvar):
-    n = nv
-    while(n >= len(self.gridvarlist1)):
-      n -= len(self.gridvarlist1)
-
-    grd1 = self.ncbase.variables[self.gridvarlist1[n]][0,:,:,:]
-    grd2 = self.nccase.variables[self.gridvarlist2[n]][0,:,:,:]
+  def plot(self, casename):
+    grd1 = self.ncbase.variables['T'][0,:,:,:]
+    grd2 = self.nccase.variables['T'][0,:,:,:]
 
     nlev, nlat, nlon = grd1.shape
-   #print('grd1.shape = ', grd1.shape)
-   #print('grd2.shape = ', grd2.shape)
+    print('grd1.shape = ', grd1.shape)
+    print('grd2.shape = ', grd2.shape)
 
     lev = np.arange(0.0, float(nlev), 1.0)
 
-    self.gp.set_label(self.unitlist[n])
-
-   #for lon in [8, 15, 32]:
-    for lon in []:
-      v1 = grd1[:,:,lon]
-      v2 = grd2[:,:,lon]
-      dv = v2 - v1
-      print('\tv1.min: %f, v1.max: %f' %(np.min(v1), np.max(v1)))
-      print('\tv2.min: %f, v2.max: %f' %(np.min(v2), np.max(v2)))
-      print('\tdv.min: %f, dv.max: %f' %(np.min(dv), np.max(dv)))
-
-      data = [v1, v2, dv]
-
-      suptitle = '%s Meridional Section at Lon %f' %(self.casename, self.gridlon[lon])
-      title0 = 'NonLinear'
-      title1 = 'Linear'
-      title2 = 'Linear - NonLinear'
-
-      title = [title0, title1, title2]
-
-      imagename = '%s_meridional_section_at_lon_%f.png' %(self.casename, self.gridlon[lon])
-      self.gp.plot_meridional_section(self.gridlat, lev, data, title, imagename, suptitle)
-      imagename = '%s_meridional_logp_section_at_lon_%f.png' %(self.casename, self.gridlon[lon])
-      self.gp.plot_meridional_section_logp(self.gridlat, data, title, imagename, suptitle)
-
-   #for lat in [17, 21]:
-    for lat in []:
-      v1 = grd1[:,lat,:]
-      v2 = grd2[:,lat,:]
-      dv = v2 - v1
-      print('\tv1.min: %f, v1.max: %f' %(np.min(v1), np.max(v1)))
-      print('\tv2.min: %f, v2.max: %f' %(np.min(v2), np.max(v2)))
-      print('\tdv.min: %f, dv.max: %f' %(np.min(dv), np.max(dv)))
-
-      data = [v1, v2, dv]
-
-      suptitle = '%s Zonal Section at Lat %f' %(self.casename, self.gridlon[lon])
-      title0 = 'NonLinear'
-      title1 = 'Linear'
-      title2 = 'Linear - NonLinear'
-
-      title = [title0, title1, title2]
-
-      imagename = '%s_zonal_section_at_lat_%f.png' %(self.casename, self.gridlat[lat])
-      self.gp.plot_zonal_section(self.gridlon, lev, data, title, imagename, suptitle)
-      imagename = '%s_zonal_logp_section_at_lat_%f.png' %(self.casename, self.gridlat[lat])
-      self.gp.plot_zonal_section_logp(self.gridlon, data, title, imagename, suptitle)
-
-    titlelabel = '%s %s %s %s' %(self.casename, self.obstype, self.enskind, self.varbase)
-    plotlabel = '%s_%s_%s_%s' %(self.casename, self.obstype, self.enskind, self.varbase)
-
-    for lev in range(95, nlev, 10):
-      v1 = grd1[lev,:,:]
-      v2 = grd2[lev,:,:]
-      dv = v2 - v1
-      print('\tv1.min: %f, v1.max: %f' %(np.min(v1), np.max(v1)))
-      print('\tv2.min: %f, v2.max: %f' %(np.min(v2), np.max(v2)))
-      print('\tdv.min: %f, dv.max: %f' %(np.min(dv), np.max(dv)))
-
-      data = [v1, v2, dv]
-
-      if(diffvar.ndim > 1):
-        for channel in range(len(diffvar[0])):
-          title = 'channel %d %s %s at Level %d' %(channel, titlelabel, self.gridvarlist1[n], lev)
-          self.gp.set_title(title)
-
-          print('Plotting ', title)
-
-          imagename = 'channel_%d_%s_%s_lev_%3.3d.png' %(channel, plotlabel, self.gridvarlist1[n], lev)
-          self.gp.set_imagename(imagename)
-
-          self.gp.plot(self.gridlon, self.gridlat, data=data, obsvar=diffvar[:, channel])
-      else:
-        title = '%s %s at Level %d' %(titlelabel, self.gridvarlist1[n], lev)
-        self.gp.set_title(title)
-
-        print('Plotting ', title)
-
-        imagename = '%s_%s_lev_%3.3d.png' %(plotlabel, self.gridvarlist1[n], lev)
-        self.gp.set_imagename(imagename)
-
-        self.gp.plot(self.gridlon, self.gridlat, data=data, obsvar=diffvar)
+    ns = 0
+    while(ns < len(self.obsflg)):
+      ne = self.gp.plot_vertical_profile(self.grdlon, self.grdlat, lev, grd1, grd2,
+                                         self.obslon, self.obslat, self.obsflg, ns, casename)
+      ns = ne
 
 #===================================================================================
 if __name__== '__main__':
@@ -741,9 +725,6 @@ if __name__== '__main__':
   obs_dir = '%s/Data' %(workdir)
   obsdir = '/scratch2/BMC/gsienkf/Wei.Huang/jedi/dev/build/intel/fv3-jedi/test/Data'
 
- #gridbase = '%s/mem000.nl/xainc.20201215_000000z.nc4' %(griddir)
- #gridcase = '%s/mem000.lo/xainc.20201215_000000z.nc4' %(griddir)
-
   gridbase = '%s/mem000.nl.getkf/xainc.20201215_000000z.nc4' %(griddir)
   gridcase = '%s/mem000.lo.getkf/xainc.20201215_000000z.nc4' %(griddir)
 
@@ -751,21 +732,16 @@ if __name__== '__main__':
  #nlexps = ['nl', 'nl.getkf']
  #loexps = ['lo', 'lo.getkf']
  #enslist = ['letkf-gfs', 'lgetkf-geos']
+ #caselist = ['letkf', 'getkf']
 
   nlexps = ['nl.getkf', 'nl']
   loexps = ['lo.getkf', 'lo']
   enslist = ['lgetkf-geos', 'letkf-gfs']
+  caselist = ['getkf', 'letkf']
 
  #obslist = ['aircraft', 'scatwind', 'sfc', 'amsua_n19']
-
- #varbaselist = [['airTemperature', 'windEastward', 'windNorthward'],
- #               ['unknown', 'windEastward', 'windNorthward'],
- #               ['stationPressure'],
- #               ['brightnessTemperature']]
   obslist = ['sfcship']
   varbaselist = [['stationPressure']]
-
-  grplist = ['ombg']
 
 #--------------------------------------------------------------------------------
   for ne in range(len(nlexps)):
@@ -791,6 +767,5 @@ if __name__== '__main__':
 
       poom.process(gridbase=gridbase, gridcase=gridcase,
                    obsbase=basefile, obscase=casefile,
-                   grplist=grplist, varlist=varbaselist[no],
-                   casename=enslist[ne])
+                   casename=caselist[ne])
 

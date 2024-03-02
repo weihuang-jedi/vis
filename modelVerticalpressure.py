@@ -10,7 +10,7 @@ import numpy as np
 
 #=========================================================================
 class ModelVerticalPressure():
-  def __init__(self, debug=0, filename=None):
+  def __init__(self, debug=0, filename='akbk127.nc4'):
     self.debug = debug
 
     flnm = 'pressure.txt'
@@ -26,8 +26,8 @@ class ModelVerticalPressure():
 
   def gen_pressure(self, filename):
     ncfile = netCDF4.Dataset(filename)
-    ak = ncfile.variables['ak'][0, :]
-    bk = ncfile.variables['bk'][0, :]
+    ak = ncfile.variables['ak'][:]
+    bk = ncfile.variables['bk'][:]
     ncfile.close()
 
    #print('ak = ', ak)
@@ -119,8 +119,7 @@ class ModelVerticalPressure():
 #------------------------------------------------------------------------------
 if __name__ == '__main__':
   debug = 1
- #filename = '/work/noaa/gsienkf/weihuang/jedi/case_study/sondes/Data/bkg/fv_core.res.nc'
-  filename = '/work2/noaa/gsienkf/weihuang/jedi/singleobs/Data/ens/mem001/RESTART/20151205.030000.fv_core.res.nc'
+  filename = 'akbk127.nc4'
 
   opts, args = getopt.getopt(sys.argv[1:], '', ['debug=', 'filename='])
 
