@@ -524,7 +524,7 @@ class GeneratePlot():
 
           line1 = axs[row,col].plot(x1[::-1], -grdlev[::-1], label=label1, color='r')
           line2 = axs[row,col].plot(x2[::-1], -grdlev[::-1], '-.', label=label2, color='b')
-          axs[row,col].set_title(title, fontsize=8)
+          axs[row,col].set_title(title, fontsize=6)
 
           major_ticks_top=np.linspace(-1.0,1.0,5)
           axs[row,col].set_xticks(major_ticks_top)
@@ -541,8 +541,9 @@ class GeneratePlot():
           axs[row,col].grid(b=True, which='minor', color='green', linestyle='dotted', alpha=0.2)
          #axs[row,col].legend(handles=[line1, line2])
          #axs[row,col].legend()
-          axs[row,col].legend(bbox_to_anchor=(1,0), loc='upper right',
-                              bbox_transform=fig.transFigure, fontsize=6)
+         #axs[row,col].legend(bbox_to_anchor=(1,0), loc='upper right',
+         #                    bbox_transform=fig.transFigure, fontsize=6)
+          axs[row,col].legend(loc='upper right', fontsize=6)
           axs[row,col].set_xlim(-1.0, 1.0)
 
           col += 1
@@ -728,10 +729,15 @@ if __name__== '__main__':
   gridcase = '%s/mem000.lo.getkf/xainc.20201215_000000z.nc4' %(griddir)
 
 #--------------------------------------------------------------------------------
-  nlexps = ['nl', 'nl.getkf']
-  loexps = ['lo', 'lo.getkf']
-  enslist = ['letkf-gfs', 'lgetkf-geos']
-  caselist = ['letkf', 'getkf']
+ #nlexps = ['nl', 'nl.getkf']
+ #loexps = ['lo', 'lo.getkf']
+ #enslist = ['letkf-gfs', 'lgetkf-geos']
+ #caselist = ['letkf', 'getkf']
+
+  nlexps = ['nl.getkf', 'nl']
+  loexps = ['lo.getkf', 'lo']
+  enslist = ['lgetkf-geos', 'letkf-gfs']
+  caselist = ['getkf', 'letkf']
 
  #obslist = ['aircraft', 'scatwind', 'sfc', 'amsua_n19']
   obslist = ['sfcship']

@@ -100,7 +100,7 @@ class GeneratePlot():
               colors[n] = 'magenta'
 
      #adding marker:
-      dotes = axs[i].scatter(self.obslon, self.obslat, s=msz, c=colors)
+     #dotes = axs[i].scatter(self.obslon, self.obslat, s=msz, c=colors)
 
    #Adjust the location of the subplots on the page to make room for the colorbar
     fig.subplots_adjust(bottom=0.1, top=0.9, left=0.05, right=0.8,
@@ -628,7 +628,8 @@ class PlotObsOnMap():
 
     self.gp.set_label(self.unitlist[n])
 
-    for lon in [8, 15, 32]:
+   #for lon in [8, 15, 32]:
+    for lon in []:
       v1 = grd1[:,:,lon]
       v2 = grd2[:,:,lon]
       dv = v2 - v1
@@ -650,7 +651,8 @@ class PlotObsOnMap():
       imagename = '%s_meridional_logp_section_at_lon_%f.png' %(self.casename, self.gridlon[lon])
       self.gp.plot_meridional_section_logp(self.gridlat, data, title, imagename, suptitle)
 
-    for lat in [17, 21]:
+   #for lat in [17, 21]:
+    for lat in []:
       v1 = grd1[:,lat,:]
       v2 = grd2[:,lat,:]
       dv = v2 - v1
