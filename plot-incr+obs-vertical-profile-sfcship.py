@@ -736,14 +736,14 @@ if __name__== '__main__':
   caselist = ['getkf', 'letkf']
 
  #obslist = ['aircraft', 'scatwind', 'sfc', 'amsua_n19']
- #obslist = ['sfcship']
- #varbaselist = [['stationPressure']]
-  obslist = ['aircraft']
-  varbaselist = [['airTemperature']]
+  obslist = ['sfcship']
+  varbaselist = [['stationPressure']]
+ #obslist = ['aircraft']
+ #varbaselist = [['airTemperature']]
 
 #--------------------------------------------------------------------------------
- #expname = 'sfcship-m10'
-  expname = 'aircraft-m10'
+  expname = 'sfcship-m10'
+ #expname = 'aircraft-m10'
  #expname = 'fourobs-m10'
   for ne in range(len(nlexps)):
     griddir = '%s/%s' %(workdir, expname)
@@ -760,8 +760,8 @@ if __name__== '__main__':
       obstype = obslist[no]
       poom.set_obstype(obstype)
 
-      obsname = '%s_%s_2020121500_s.nc4' %(obstype, enslist[ne])
-     #obsname = '%s_%s_20201215_s.nc4' %(obstype, enslist[ne])
+     #obsname = '%s_%s_2020121500_s.nc4' %(obstype, enslist[ne])
+      obsname = '%s_%s_20201215_s.nc4' %(obstype, enslist[ne])
       basefile = '%s/%s/hofx.%s/%s' %(workdir, expname, nlexps[ne], obsname)
       casefile = '%s/%s/hofx.%s/%s' %(workdir, expname, loexps[ne], obsname)
 
@@ -770,6 +770,6 @@ if __name__== '__main__':
 
       poom.process(gridbase=gridbase, gridcase=gridcase,
                    obsbase=basefile, obscase=casefile,
-                   casename=caselist[ne], varname='airTemperature')
-#                  casename=caselist[ne], varname='stationPressure')
+                   casename=caselist[ne], varname='stationPressure')
+#                  casename=caselist[ne], varname='airTemperature')
 

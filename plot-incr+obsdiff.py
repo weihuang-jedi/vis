@@ -66,8 +66,9 @@ class GeneratePlot():
       cyclic_data, cyclic_lons = add_cyclic_point(pvar, coord=lons)
 
       if(i > 1):
-        cyclic_data *= 10.0
-        title = '%s magnified 10 time' %(self.runname[i])
+       #cyclic_data *= 10.0
+       #title = '%s magnified 10 time' %(self.runname[i])
+        title = self.runname[i]
       else:
         title = self.runname[i]
 
@@ -135,7 +136,7 @@ class GeneratePlot():
   def set_default(self):
     self.imagename = 'sample.png'
 
-    self.runname = ['Linear Observer', 'NonLinear', 'Linear Observer - NonLinear']
+    self.runname = ['NonLinear', 'Linear Observer', 'Linear Observer - NonLinear']
 
    #cmapname = coolwarm, bwr, rainbow, jet, seismic
     self.cmapname = 'bwr'
@@ -199,7 +200,7 @@ class GeneratePlot():
     self.add_obs_marker = False
 
 #--------------------------------------------------------------------------------
-  def set_runname(self, runname = ['Linear Observer', 'NonLinear', 'Linear Observer - NonLinear']):
+  def set_runname(self, runname = ['NonLinear', 'Linear Observer', 'Linear Observer - NonLinear']):
     self.runname = runname
 
 #--------------------------------------------------------------------------------
@@ -513,13 +514,16 @@ class PlotObsOnMap():
    #self.clevs = np.arange(-1.0, 1.01, 0.01)
    #self.cblevs = np.arange(-1.0, 1.1, 0.1)
 
-    self.clevs = np.arange(-1.0, 1.02, 0.02)
-    self.cblevs = np.arange(-1.0, 1.2, 0.2)
+   #self.clevs = np.arange(-1.0, 1.02, 0.02)
+   #self.cblevs = np.arange(-1.0, 1.2, 0.2)
+
+    self.clevs = np.arange(-0.5, 0.51, 0.01)
+    self.cblevs = np.arange(-0.5, 0.6, 0.1)
 
     self.gp.set_clevs(clevs=self.clevs)
     self.gp.set_cblevs(cblevs=self.cblevs)
 
-    self.gp.set_runname(runname=['Linear Observer', 'NonLinear', 'Linear Observer - NonLinear'])
+    self.gp.set_runname(runname=['NonLinear', 'Linear Observer', 'Linear Observer - NonLinear'])
     self.gp.switch_marker_on()
 
 #--------------------------------------------------------------------------------
@@ -596,7 +600,7 @@ class PlotObsOnMap():
     self.nccase.close()
 
 #-----------------------------------------------------------------------------------------
-  def set_runname(self, runname=['Linear Observer', 'NonLinear', 'Linear Observer - NonLinear']):
+  def set_runname(self, runname=['NonLinear', 'Linear Observer', 'Linear Observer - NonLinear']):
     self.gp.set_runname(runname=runname)
 
 #-----------------------------------------------------------------------------------------
@@ -677,7 +681,7 @@ class PlotObsOnMap():
     titlelabel = '%s %s %s %s' %(self.casename, self.obstype, self.enskind, self.varbase)
     plotlabel = '%s_%s_%s_%s' %(self.casename, self.obstype, self.enskind, self.varbase)
 
-    for lev in range(95, nlev, 10):
+    for lev in range(45, nlev, 10):
       v1 = grd1[lev,:,:]
       v2 = grd2[lev,:,:]
       dv = v2 - v1
@@ -728,7 +732,7 @@ if __name__== '__main__':
       assert False, 'unhandled option'
 
 #--------------------------------------------------------------------------------
-  runname = ['Linear Observer', 'NonLinear', 'Linear Observer - NonLinear']
+  runname = ['NonLinear', 'Linear Observer', 'Linear Observer - NonLinear']
 
   poom = PlotObsOnMap(debug=debug, output=output)
 
@@ -737,24 +741,11 @@ if __name__== '__main__':
 
 #--------------------------------------------------------------------------------
   workdir = '/scratch2/BMC/gsienkf/Wei.Huang/jedi/dev/build/intel/fv3-jedi/test'
-  griddir = '%s/Data/analysis/letkf/gfs' %(workdir)
-  obs_dir = '%s/Data' %(workdir)
-  obsdir = '/scratch2/BMC/gsienkf/Wei.Huang/jedi/dev/build/intel/fv3-jedi/test/Data'
-
- #gridbase = '%s/mem000.nl/xainc.20201215_000000z.nc4' %(griddir)
- #gridcase = '%s/mem000.lo/xainc.20201215_000000z.nc4' %(griddir)
-
-  gridbase = '%s/mem000.nl.getkf/xainc.20201215_000000z.nc4' %(griddir)
-  gridcase = '%s/mem000.lo.getkf/xainc.20201215_000000z.nc4' %(griddir)
 
 #--------------------------------------------------------------------------------
- #nlexps = ['nl', 'nl.getkf']
- #loexps = ['lo', 'lo.getkf']
- #enslist = ['letkf-gfs', 'lgetkf-geos']
-
-  nlexps = ['nl.getkf', 'nl']
-  loexps = ['lo.getkf', 'lo']
-  enslist = ['lgetkf-geos', 'letkf-gfs']
+  nlexps = ['nl.getkf', 'nl.letkf']
+  loexps = ['lo.getkf', 'lo.letkf']
+  enslist = ['getkf-gfs', 'letkf-gfs']
 
  #obslist = ['aircraft', 'scatwind', 'sfc', 'amsua_n19']
 
@@ -762,13 +753,18 @@ if __name__== '__main__':
  #               ['unknown', 'windEastward', 'windNorthward'],
  #               ['stationPressure'],
  #               ['brightnessTemperature']]
-  obslist = ['sfcship']
-  varbaselist = [['stationPressure']]
+ #obslist = ['sfcship']
+ #varbaselist = [['stationPressure']]
+  obslist = ['aircraft']
+  varbaselist = [['airTemperature']]
 
   grplist = ['ombg']
 
+ #expname='sfcship-m10'
+  expname='aircraft-m10'
 #--------------------------------------------------------------------------------
   for ne in range(len(nlexps)):
+    griddir = '%s/%s' %(workdir, expname)
     gridbase = '%s/mem000.%s/xainc.20201215_000000z.nc4' %(griddir, nlexps[ne])
     gridcase = '%s/mem000.%s/xainc.20201215_000000z.nc4' %(griddir, loexps[ne])
 
@@ -783,8 +779,9 @@ if __name__== '__main__':
       poom.set_obstype(obstype)
 
       obsname = '%s_%s_2020121500_s.nc4' %(obstype, enslist[ne])
-      basefile = '%s/hofx.%s/%s' %(obs_dir, nlexps[ne], obsname)
-      casefile = '%s/hofx.%s/%s' %(obs_dir, loexps[ne], obsname)
+     #obsname = '%s_%s_20201215_s.nc4' %(obstype, enslist[ne])
+      basefile = '%s/%s/hofx.%s/%s' %(workdir, expname, nlexps[ne], obsname)
+      casefile = '%s/%s/hofx.%s/%s' %(workdir, expname, loexps[ne], obsname)
 
       print('basefile: ', basefile)
       print('casefile: ', casefile)
