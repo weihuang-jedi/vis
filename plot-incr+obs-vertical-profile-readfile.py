@@ -743,12 +743,12 @@ if __name__== '__main__':
 
 #--------------------------------------------------------------------------------
  #expname = 'sfcship-m10'
-  expname = 'aircraft-m10'
- #expname = 'fourobs-m10'
+ #expname = 'aircraft-m10'
+  expname = 'aircraft-m10.readfile'
   for ne in range(len(nlexps)):
     griddir = '%s/%s' %(workdir, expname)
-    gridbase = '%s/mem000.%s/xainc.20201215_000000z.nc4' %(griddir, nlexps[ne])
-    gridcase = '%s/mem000.%s/xainc.20201215_000000z.nc4' %(griddir, loexps[ne])
+    gridbase = '%s/mem000.%s.readfile/xainc.20201215_000000z.nc4' %(griddir, nlexps[ne])
+    gridcase = '%s/mem000.%s.readfile/xainc.20201215_000000z.nc4' %(griddir, loexps[ne])
 
     print('gridbase: ', gridbase)
     print('gridcase: ', gridcase)
@@ -760,10 +760,10 @@ if __name__== '__main__':
       obstype = obslist[no]
       poom.set_obstype(obstype)
 
+     #obsname = '%s_%s_2020121500_s.nc4' %(obstype, enslist[ne])
       obsname = '%s_%s_2020121500_s.nc4' %(obstype, enslist[ne])
-     #obsname = '%s_%s_20201215_s.nc4' %(obstype, enslist[ne])
-      basefile = '%s/%s/hofx.%s/%s' %(workdir, expname, nlexps[ne], obsname)
-      casefile = '%s/%s/hofx.%s/%s' %(workdir, expname, loexps[ne], obsname)
+      basefile = '%s/%s/hofx.%s.readfile/%s' %(workdir, expname, nlexps[ne], obsname)
+      casefile = '%s/%s/hofx.%s.readfile/%s' %(workdir, expname, loexps[ne], obsname)
 
       print('basefile: ', basefile)
       print('casefile: ', casefile)
@@ -771,5 +771,4 @@ if __name__== '__main__':
       poom.process(gridbase=gridbase, gridcase=gridcase,
                    obsbase=basefile, obscase=casefile,
                    casename=caselist[ne], varname='airTemperature')
-#                  casename=caselist[ne], varname='stationPressure')
 
